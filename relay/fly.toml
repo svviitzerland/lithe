@@ -1,0 +1,23 @@
+# A relay needs one thing serverless cannot give it: a real TCP port.
+app = "lithe-relay"
+primary_region = "sin"
+
+[build]
+  dockerfile = "Dockerfile"
+
+# Set these first:
+#   fly secrets set LITHE_SEED=$(openssl rand -hex 32)
+#   fly secrets set LITHE_ORIGIN=https://my-app.vercel.app/api/tui
+
+[[services]]
+  internal_port = 2222
+  protocol = "tcp"
+  auto_stop_machines = false   # an SSH front door should always answer
+  min_machines_running = 1
+
+  [[services.ports]]
+    port = 22
+
+[[vm]]
+  size = "shared-cpu-1x"
+  memory = "256mb"
