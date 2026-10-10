@@ -1,0 +1,32 @@
+{
+  "comment": "Shared conformance fixtures. Both packages/core/src/keys.ts and relay/keys.go must produce exactly these events. Input is a JSON string with escapes.",
+  "cases": [
+    { "in": "a", "out": [{ "t": "key", "key": "a", "rune": "a" }] },
+    { "in": "A", "out": [{ "t": "key", "key": "A", "rune": "A" }] },
+    { "in": " ", "out": [{ "t": "key", "key": "space", "rune": " " }] },
+    { "in": "\u0003", "out": [{ "t": "key", "key": "ctrl+c" }] },
+    { "in": "\u0001", "out": [{ "t": "key", "key": "ctrl+a" }] },
+    { "in": "\r", "out": [{ "t": "key", "key": "enter" }] },
+    { "in": "\t", "out": [{ "t": "key", "key": "tab" }] },
+    { "in": "\u007f", "out": [{ "t": "key", "key": "backspace" }] },
+    { "in": "\u001b", "out": [{ "t": "key", "key": "esc" }] },
+    { "in": "\u001b[A", "out": [{ "t": "key", "key": "up" }] },
+    { "in": "\u001b[B", "out": [{ "t": "key", "key": "down" }] },
+    { "in": "\u001b[C", "out": [{ "t": "key", "key": "right" }] },
+    { "in": "\u001b[D", "out": [{ "t": "key", "key": "left" }] },
+    { "in": "\u001b[Z", "out": [{ "t": "key", "key": "shift+tab" }] },
+    { "in": "\u001b[H", "out": [{ "t": "key", "key": "home" }] },
+    { "in": "\u001b[3~", "out": [{ "t": "key", "key": "delete" }] },
+    { "in": "\u001b[5~", "out": [{ "t": "key", "key": "pgup" }] },
+    { "in": "\u001b[15~", "out": [{ "t": "key", "key": "f5" }] },
+    { "in": "\u001bOP", "out": [{ "t": "key", "key": "f1" }] },
+    { "in": "\u001b[1;5A", "out": [{ "t": "key", "key": "ctrl+up" }] },
+    { "in": "\u001b[1;2C", "out": [{ "t": "key", "key": "shift+right" }] },
+    { "in": "\u001bx", "out": [{ "t": "key", "key": "alt+x" }] },
+    { "in": "hi", "out": [{ "t": "key", "key": "h", "rune": "h" }, { "t": "key", "key": "i", "rune": "i" }] },
+    { "in": "\u001b[200~pasted text\u001b[201~", "out": [{ "t": "paste", "data": "pasted text" }] },
+    { "in": "é", "out": [{ "t": "key", "key": "é", "rune": "é" }] },
+    { "in": "日", "out": [{ "t": "key", "key": "日", "rune": "日" }] },
+    { "in": "j\u001b[Bq", "out": [{ "t": "key", "key": "j", "rune": "j" }, { "t": "key", "key": "down" }, { "t": "key", "key": "q", "rune": "q" }] }
+  ]
+}
