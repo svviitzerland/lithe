@@ -1,0 +1,24 @@
+[Unit]
+Description=lithe pipe — splices TCP onto an app's WebSocket, parsing nothing
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+# Needs port 22, and nothing else. No state, no keys, no config file.
+ExecStart=/usr/local/bin/lithe-relay --addr :22 --pipe ${LITHE_PIPE_ORIGIN} -v
+EnvironmentFile=/etc/default/lithe-pipe
+Restart=always
+RestartSec=2
+DynamicUser=yes
+AmbientCapabilities=CAP_NET_BIND_SERVICE
+CapabilityBoundingSet=CAP_NET_BIND_SERVICE
+NoNewPrivileges=yes
+ProtectSystem=strict
+ProtectHome=yes
+PrivateTmp=yes
+PrivateDevices=yes
+RestrictAddressFamilies=AF_INET AF_INET6
+MemoryMax=256M
+
+[Install]
+WantedBy=multi-user.target
