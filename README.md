@@ -5,13 +5,22 @@
 **Design a terminal app. Deploy it anywhere. People reach it with `ssh`.**
 
 ```sh
-lithe setup --write           # once, ever — teaches ssh about lithe apps
-ssh my-app.vercel.app
+ssh my-app.com
 ```
 
-Or skip the setup entirely with `lithe ssh my-app.vercel.app`, which needs no
-configuration at all. Plain `ssh` on its own cannot work without one of the two:
-there is no listener on port 22 to connect to — [see why](#why-ssh-myappcom-needs-one-of-the-two).
+Stock `ssh`. No username, no client install, nothing in `~/.ssh/config`. The one
+thing that must exist is something listening on port 22 — [there is no way
+around that](#why-ssh-myappcom-needs-a-listener) — so lithe ships a **pipe**: a
+byte-splicer that parses nothing, holds no keys and cannot read the session,
+because SSH is terminated by your function at the other end.
+
+```sh
+lithe-relay --addr :22 --pipe https://my-app.vercel.app   # on any box with a port
+```
+
+Nothing to install for whoever connects. If you would rather run no
+infrastructure at all, `lithe ssh my-app.vercel.app` bridges from the visitor's
+own machine instead.
 
 No server to keep alive, no port 22 to open, no TLS to manage, no browser, no
 bundle. Your app is one file that deploys to Vercel or Cloudflare Workers like
@@ -99,13 +108,16 @@ These are really deployed, and really answer `ssh`:
 
 ```sh
 git clone https://github.com/svviitzerland/lithe && cd lithe && bun install
-bun packages/cli/src/bin.ts setup --write      # one block in ~/.ssh/config
 
-ssh lithe-hello.farhanauliandastudy.workers.dev      # the tour, on Cloudflare
-ssh lithe-snake.farhanauliandastudy.workers.dev      # a game, animated by io.wake
-ssh lithe-guestbook.farhanauliandastudy.workers.dev  # your ssh key is your name
-ssh lithe-hello.vercel.app                           # the same app, on Vercel
+bun packages/cli/src/bin.ts ssh lithe-hello.farhanauliandastudy.workers.dev      # the tour
+bun packages/cli/src/bin.ts ssh lithe-snake.farhanauliandastudy.workers.dev      # a game
+bun packages/cli/src/bin.ts ssh lithe-guestbook.farhanauliandastudy.workers.dev  # your key is your name
+bun packages/cli/src/bin.ts ssh lithe-hello.vercel.app                           # same app, on Vercel
 ```
+
+These demos have no pipe in front of them yet, so they are reached from the
+client side. Put a pipe on a box with port 22 and the same deployments answer
+plain `ssh app.com` with nothing installed.
 
 Expected host keys, derived from each deployment's seed — the point being that
 you can check them before you trust them:
@@ -174,16 +186,31 @@ defineApp<State, { NOTES: KVNamespace }>({
 
 See [docs/DEPLOY.md](docs/DEPLOY.md) and [docs/SSH.md](docs/SSH.md).
 
-## Two ways in
+## Three ways in
 
 | | what the visitor does | what you run | who can read the session |
 |---|---|---|---|
-| **Direct** (recommended) | `lithe ssh my-app.vercel.app`, or plain `ssh` after one `lithe setup` | nothing | nobody |
-| **Relay** | plain `ssh my-app.vercel.app@relay`, nothing installed | nothing, if you use a shared relay | the relay |
+| **Pipe** | `ssh my-app.com` — nothing at all | a byte-splicer on any box with port 22 | **nobody** |
+| **Client-side bridge** | `lithe ssh my-app.vercel.app`, or plain `ssh` after one `lithe setup` | **nothing** | **nobody** |
+| **Relay** | `ssh my-app.vercel.app@relay` — nothing installed | nothing, if you use a shared relay | the relay |
 
-**Direct.** `lithe ssh <host>` runs your real `ssh` binary through a local bridge
-to the app's HTTPS endpoint. To make the stock `ssh` command work on its own, one
-block covers every lithe app, forever:
+Pick by what you are willing to run. The pipe is the only one that is free for
+the visitor *and* keeps the session private, because it never terminates SSH —
+the client verifies your function's host key straight through it.
+
+**Pipe.** One flag, and `ssh your-app.com` works for everyone:
+
+```sh
+lithe-relay --addr :22 --pipe https://my-app.vercel.app
+```
+
+It holds no host key and parses no protocol. Many apps on one box route by
+destination address — one IPv6 each, from a `/64`. See [docs/RELAY.md](docs/RELAY.md).
+
+**Client-side bridge.** `lithe ssh <host>` runs your real `ssh` binary through a
+local bridge to the app's HTTPS endpoint, so there is no infrastructure anywhere.
+To make the stock `ssh` command work on its own, one block covers every lithe app,
+forever:
 
 ```sh
 lithe setup --write     # adds a ProxyCommand block to ~/.ssh/config
@@ -201,13 +228,17 @@ _lithe.myapp.com.   TXT   "v=lithe1; origin=https://my-app.vercel.app/api/tui"
 
 See [docs/RELAY.md](docs/RELAY.md).
 
-### Why `ssh myapp.com` needs one of the two
+### Why `ssh myapp.com` needs a listener
 
 Something must accept a TCP connection on `myapp.com:22`. SSH offers no SNI, no
-hostname in the handshake and no redirect, so there is no protocol trick that
-avoids it. The honest options are: a bridge on the client (`ProxyCommand`), a
-relay with a dedicated address per app, or your own listener. lithe gives you all
-three; `@lithe/app/ssh-bun`'s `listenSsh` is the last one in two lines.
+hostname in the handshake, no redirect and no SRV support, so there is no
+protocol trick that avoids it — the app can only be identified by the address the
+connection arrived on.
+
+What lithe does is make that listener as close to nothing as it can be: the pipe
+holds no keys, parses no protocol and cannot read what it carries. If you want to
+run nothing at all, the bridge moves to the visitor's machine instead. Those are
+the only two shapes this can take.
 
 ## What it costs to run
 
@@ -255,7 +286,7 @@ packages/core     cell grid, layout engine, ANSI diffing, key decoding  (zero de
 packages/ssh      an SSH-2 server in TypeScript, on WebCrypto            (zero deps)
 packages/app      app runtime, wire protocol, session codec, adapters
 packages/cli      lithe dev / serve / ssh / pipe / setup / init
-relay             the optional SSH front door (Go)
+relay             the pipe (parses nothing) and the relay (terminates SSH), in Go
 examples/         hello, snake, guestbook — see examples/README.md
 test/fixtures/    shared by the TypeScript and Go key decoders
 scripts/          e2e.sh (relay path) and e2e-ssh.sh (direct path); CI runs both

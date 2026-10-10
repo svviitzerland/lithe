@@ -1,10 +1,77 @@
 # Running a relay
 
-> You may not need this at all. If your deployment terminates SSH itself — see
-> [SSH.md](SSH.md) — there is no relay in the path and nothing here applies.
-> Relay mode exists because it asks nothing of the visitor: plain `ssh`, no
-> client-side setup. The trade is that the relay terminates the session and can
-> therefore see it.
+The binary has two modes, and the difference is whether it understands SSH at
+all.
+
+| | the visitor runs | can it read the session | many apps on one box |
+|---|---|---|---|
+| **Pipe** | `ssh your-app.com` — nothing configured | **no**, it parses nothing | one address per app |
+| **Relay** | `ssh your-app.com@the-relay` | yes, it terminates SSH | one address, many usernames |
+
+Start with pipe mode. It is the only arrangement where a stranger types
+`ssh your-app.com` and it works, while the session stays end-to-end encrypted
+between their `ssh` client and your function.
+
+## Pipe mode: zero setup for the visitor, zero trust in the middle
+
+Your app already terminates SSH ([SSH.md](SSH.md)). All that is missing is
+something listening on port 22 to hand the bytes over. The pipe does exactly
+that and nothing else — no host key, no authentication, no parsing:
+
+```sh
+go build -o lithe-relay ./relay
+
+./lithe-relay --addr :22 --pipe https://my-app.vercel.app
+```
+
+Point your domain's `A`/`AAAA` record at the box, and:
+
+```sh
+ssh my-app.com          # stock ssh, no config, no username, no client install
+```
+
+The host key the client verifies is **your function's**, not the pipe's. The pipe
+sees SSH ciphertext it has no key for, which is why it is safe to run on cheap
+infrastructure, to share, or to let someone else operate.
+
+### Many apps, one box
+
+The pipe parses nothing, so it cannot read a username to route on. It routes on
+the address the connection arrived on instead. An IPv6 block makes that free —
+one address per app, out of a `/64` you already have:
+
+```json
+// pipes.json
+{
+  "2a09:xxxx:1::1": "https://app-one.vercel.app",
+  "2a09:xxxx:1::2": "https://app-two.workers.dev"
+}
+```
+
+```sh
+./lithe-relay --addr :22 --pipe-map pipes.json
+```
+
+```
+app-one.com.  AAAA  2a09:xxxx:1::1
+app-two.com.  AAAA  2a09:xxxx:1::2
+```
+
+Both answer bare `ssh`, with nothing on the client. IPv4 has no spare addresses
+to do this with, which is the only reason relay mode still exists.
+
+### What it costs
+
+A pipe connection is two goroutines and a 32 kB buffer. The work is `read` and
+`write`; there is no crypto, no rendering and no state, so a 256 MB instance
+carries a lot of sessions.
+
+---
+
+# Relay mode
+
+Relay mode terminates SSH, which is how it can route by username and serve many
+apps from a single IPv4 address. The cost is that it sees the session.
 
 The relay is one static Go binary with no state, no database and no config file.
 Running your own takes a minute and gives you a bare `ssh yourapp.com` instead of
@@ -103,6 +170,8 @@ cell grid and one HTTP connection.
 | Flag | Default | |
 |---|---|---|
 | `--addr` | `:2222` | listen address |
+| `--pipe` | — | pipe mode: splice every connection onto this app's WebSocket, parsing nothing |
+| `--pipe-map` | — | pipe mode: JSON file mapping destination IP → app origin |
 | `--origin` | — | serve a single app, ignore the username |
 | `--app-id` | — | app name reported to a single origin; also the host-key label |
 | `--routes` | — | JSON file: ssh username → origin URL |
