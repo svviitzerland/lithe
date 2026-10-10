@@ -66,6 +66,40 @@ A pipe connection is two goroutines and a 32 kB buffer. The work is `read` and
 `write`; there is no crypto, no rendering and no state, so a 256 MB instance
 carries a lot of sessions.
 
+Measured on a `t4g.nano` (2 vCPU burst, 512 MB) in `ap-southeast-1`, piping to a
+Cloudflare Worker, from a client in Indonesia:
+
+| | |
+|---|---|
+| Keystroke | **p50 46 ms**, min 8 ms |
+| Connect to first frame | 669 ms, including the SSH handshake |
+| Binary | 7.3 MB, static, no libc |
+| Instance | about $3/month, plus ~$0.60 for the disk |
+
+Put the pipe near your users *and* near your origin — it is one hop in a chain
+that is already two. A pipe in the US serving an Asian audience adds ~200 ms to
+every keystroke, which you will feel.
+
+### Picking a box
+
+Any Linux host with a public address works. The one real constraint is that the
+machine's own `sshd` already owns port 22, so `relay/deploy/setup-pipe.sh` moves
+administrative access to 2200 first and verifies it came back **before** touching
+port 22 — a mistake there would lock you out of your own machine.
+
+```sh
+GOOS=linux GOARCH=arm64 CGO_ENABLED=0 go build -trimpath -ldflags="-s -w" -o lithe-relay ./relay
+scp lithe-relay relay/deploy/{setup-pipe.sh,lithe-pipe.service} admin@box:
+ssh admin@box './setup-pipe.sh https://my-app.example'
+```
+
+Then one DNS record — an `A` record, **DNS only, not proxied**, because a CDN
+proxy will not carry port 22:
+
+```
+ssh.myapp.com.   A   203.0.113.10
+```
+
 ---
 
 # Relay mode
