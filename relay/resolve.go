@@ -24,31 +24,34 @@ type cached struct {
 
 // Resolver turns an SSH username into an origin URL.
 //
-// Four strategies, in order:
-//  1. --origin: every connection goes to one endpoint (self-hosting a single app)
-//  2. --routes file: a static name -> origin map
-//  3. DNS: TXT at _lithe.<username> names the origin. Authoritative, and the
-//     only option if your endpoint lives somewhere other than the hostname.
-//  4. Probe: GET https://<username>/<well-known path> and accept it if it
-//     answers with a lithe manifest. This is what makes a platform-assigned
-//     hostname work — you cannot publish DNS under vercel.app or workers.dev,
-//     but you can deploy there and be found by convention.
+// There is nothing to register and nothing to publish. If your app answers at a
+// hostname — the one the platform gave you, or your own domain added in the
+// Vercel or Cloudflare dashboard — the relay finds it by asking that hostname
+// directly:
+//
+//	GET https://<hostname>/_lithe/ssh   (and /api/tui, /tui, /)
+//
+// A candidate counts only when it replies with a lithe manifest, so a relay
+// cannot be aimed at a third party that has not deployed one.
 type Resolver struct {
+	// DefaultOrigin serves one app and ignores the username.
 	DefaultOrigin string
 	AppID         string
-	Static        map[string]string
-	DNS           bool
-	Probe         bool
-	AllowPrivate  bool
-	TTL           time.Duration
-	Client        *http.Client
+	// Static pins specific usernames, for operators who want an allowlist.
+	Static       map[string]string
+	Probe        bool
+	AllowPrivate bool
+	TTL          time.Duration
+	Client       *http.Client
 
 	mu    sync.Mutex
 	cache map[string]cached
 }
 
-// Where an app is expected to live when nothing says otherwise.
-var probePaths = []string{"/api/tui", "/tui", "/api/lithe", "/"}
+// Where an app lives when nothing says otherwise. The first is the convention
+// for a lithe deployment; the rest cover apps mounted under a framework's
+// routing.
+var probePaths = []string{"/_lithe/ssh", "/api/tui", "/tui", "/"}
 
 func LoadRoutes(path string) (map[string]string, error) {
 	if path == "" {
@@ -80,11 +83,11 @@ func (r *Resolver) Resolve(ctx context.Context, user string) (app string, origin
 		return user, o, r.validate(o)
 	}
 
-	if !r.DNS && !r.Probe {
+	if !r.Probe {
 		return "", "", fmt.Errorf("unknown app %q", user)
 	}
 	if !domainish.MatchString(user) {
-		return "", "", fmt.Errorf("%q is not a domain; connect as ssh your-domain.com@<relay>", user)
+		return "", "", fmt.Errorf("%q is not a hostname; connect as ssh your-app.com@<relay>", user)
 	}
 
 	r.mu.Lock()
@@ -97,7 +100,7 @@ func (r *Resolver) Resolve(ctx context.Context, user string) (app string, origin
 	}
 	r.mu.Unlock()
 
-	o, err := r.discover(ctx, user)
+	o, err := r.probe(ctx, user)
 	if err != nil {
 		return "", "", err
 	}
@@ -117,32 +120,7 @@ func (r *Resolver) ttl() time.Duration {
 	return r.TTL
 }
 
-// discover tries the DNS record first, then well-known paths on the hostname.
-func (r *Resolver) discover(ctx context.Context, domain string) (string, error) {
-	var dnsErr error
-	if r.DNS {
-		o, err := lookupOrigin(ctx, domain)
-		if err == nil {
-			return o, nil
-		}
-		dnsErr = err
-	}
-	if !r.Probe {
-		return "", dnsErr
-	}
-	o, err := r.probe(ctx, domain)
-	if err == nil {
-		return o, nil
-	}
-	if dnsErr != nil {
-		return "", fmt.Errorf("%v, and %v", dnsErr, err)
-	}
-	return "", err
-}
-
-// probe asks the hostname itself where the app is. A candidate counts only if
-// it returns a lithe manifest, so a relay cannot be pointed at a third party
-// that has not opted in.
+// probe asks the hostname itself where the app is.
 func (r *Resolver) probe(ctx context.Context, domain string) (string, error) {
 	client := r.Client
 	if client == nil {
@@ -183,35 +161,11 @@ func (r *Resolver) probe(ctx context.Context, domain string) (string, error) {
 			return candidate, nil
 		}
 	}
-	return "", fmt.Errorf("probed %s://%s%v but found no lithe app", scheme, domain, probePaths)
-}
-
-// lookupOrigin reads  _lithe.<domain>  TXT  "v=lithe1; origin=https://..."
-func lookupOrigin(ctx context.Context, domain string) (string, error) {
-	recs, err := net.DefaultResolver.LookupTXT(ctx, "_lithe."+domain)
-	if err != nil {
-		return "", fmt.Errorf("no _lithe.%s TXT record found", domain)
-	}
-	for _, rec := range recs {
-		fields := map[string]string{}
-		for _, part := range strings.Split(rec, ";") {
-			kv := strings.SplitN(strings.TrimSpace(part), "=", 2)
-			if len(kv) == 2 {
-				fields[strings.ToLower(kv[0])] = strings.TrimSpace(kv[1])
-			}
-		}
-		if fields["v"] != "lithe1" {
-			continue
-		}
-		if o := fields["origin"]; o != "" {
-			return o, nil
-		}
-	}
-	return "", fmt.Errorf("_lithe.%s has no valid v=lt1 record", domain)
+	return "", fmt.Errorf("no lithe app answered at %s://%s (tried %s)", scheme, domain, strings.Join(probePaths, ", "))
 }
 
 // validate keeps the relay from being turned into an open proxy into private
-// networks by whoever controls a TXT record.
+// networks by whoever controls a hostname.
 func (r *Resolver) validate(raw string) error {
 	u, err := url.Parse(raw)
 	if err != nil {

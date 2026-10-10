@@ -27,8 +27,7 @@ func main() {
 		appID        = flag.String("app-id", envOr("LITHE_APP_ID", ""), "app name reported to a single-app origin")
 		routesPath   = flag.String("routes", os.Getenv("LITHE_ROUTES"), "JSON file mapping ssh username -> origin URL")
 		seed         = flag.String("seed", os.Getenv("LITHE_SEED"), "host key seed; same seed = same fingerprint forever")
-		useDNS       = flag.Bool("dns", true, "resolve unknown usernames via _lithe.<domain> TXT records")
-		useProbe     = flag.Bool("probe", true, "if DNS has nothing, probe https://<username>/api/tui and friends")
+		useProbe     = flag.Bool("probe", true, "find an app by asking its hostname, so nothing needs registering")
 		allowPrivate = flag.Bool("allow-private", false, "allow http:// and private-network origins (local development)")
 		maxRPS       = flag.Int("max-rps", 30, "max origin requests per second per session")
 		coalesce     = flag.Duration("coalesce", 8*time.Millisecond, "input batching window")
@@ -100,7 +99,6 @@ func main() {
 		DefaultOrigin: *origin,
 		AppID:         *appID,
 		Static:        routes,
-		DNS:           *useDNS && *origin == "",
 		Probe:         *useProbe && *origin == "",
 		AllowPrivate:  *allowPrivate,
 	}
@@ -129,9 +127,9 @@ func main() {
 	}
 	srv.AddHostKey(signer)
 
-	mode := "discovery: dns + probe"
+	mode := "discovery by hostname"
 	if !*useProbe {
-		mode = "discovery: dns"
+		mode = "static routes only"
 	}
 	if *origin != "" {
 		mode = "single origin " + *origin
