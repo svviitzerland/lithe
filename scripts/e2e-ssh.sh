@@ -8,8 +8,9 @@ set +m
 cd "$(dirname "$0")/.."
 TCP_PORT=${TCP_PORT:-2200}
 WS_PORT=${WS_PORT:-8790}
+PIPE_PORT=${PIPE_PORT:-2201}
 TMP=$(mktemp -d)
-trap 'kill ${TCP_PID:-} ${WS_PID:-} 2>/dev/null || true; rm -rf "$TMP"' EXIT
+trap 'kill ${TCP_PID:-} ${WS_PID:-} ${PIPE_PID:-} 2>/dev/null || true; rm -rf "$TMP"' EXIT
 
 ssh-keygen -q -t ed25519 -f "$TMP/key" -N "" -C e2e-ssh
 
@@ -60,6 +61,33 @@ wait_port "$WS_PORT" || { echo "server never came up"; cat "$TMP/ws.log"; exit 1
   -o UserKnownHostsFile=/dev/null -o LogLevel=DEBUG1 \
   >"$TMP/ws.out" 2>"$TMP/ws.err" || true
 check "websocket" "$TMP/ws.out" "$TMP/ws.err"
+
+echo "== stock ssh through the pipe, with no client configuration at all"
+# The pipe terminates nothing: it splices TCP onto the app's WebSocket. This is
+# the only arrangement where a stranger runs `ssh host` and it just works.
+( cd relay && go run . --addr "127.0.0.1:$PIPE_PORT" --pipe "http://127.0.0.1:$WS_PORT" -v ) >"$TMP/pipe.log" 2>&1 &
+PIPE_PID=$!
+wait_port "$PIPE_PORT" || { echo "pipe never came up"; cat "$TMP/pipe.log"; exit 1; }
+
+# -F /dev/null proves no ssh config is involved, and no lithe binary is on the
+# client side of this connection.
+{ sleep 2; printf 'jj'; sleep 2; printf 'q'; sleep 2; } | ssh -F /dev/null -tt \
+  -p "$PIPE_PORT" -i "$TMP/key" \
+  -o IdentitiesOnly=yes -o StrictHostKeyChecking=no \
+  -o UserKnownHostsFile="$TMP/pipe_known" -o LogLevel=DEBUG1 \
+  anyone@127.0.0.1 >"$TMP/pipe.out" 2>"$TMP/pipe.err" || true
+check "pipe" "$TMP/pipe.out" "$TMP/pipe.err"
+
+# The client must end up trusting the app's key, not the pipe's.
+pipe_fp=$(ssh-keygen -lf "$TMP/pipe_known" 2>/dev/null | awk '{print $2}')
+app_fp=$(grep -o 'host key SHA256:[A-Za-z0-9+/]*' "$TMP/ws.log" | head -1 | cut -d' ' -f3)
+echo "   client pinned $pipe_fp"
+if [ "$pipe_fp" = "$app_fp" ]; then
+  echo "   ok: that is the app's own host key — the pipe terminated nothing"
+else
+  echo "   FAIL: the pipe appears to have terminated the session"
+  exit 1
+fi
 
 echo "== the same seed gives the same host key on both transports"
 # From the server logs: the client's debug output also mentions its own key.
