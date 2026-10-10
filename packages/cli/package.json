@@ -1,0 +1,40 @@
+{
+  "name": "@lithe/cli",
+  "version": "0.1.0",
+  "description": "Run, serve and scaffold lithe apps: lithe dev / serve / init.",
+  "keywords": [
+    "tui",
+    "ssh",
+    "cli",
+    "serverless"
+  ],
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/lithe-sh/lithe.git",
+    "directory": "packages/cli"
+  },
+  "homepage": "https://github.com/lithe-sh/lithe#readme",
+  "type": "module",
+  "bin": {
+    "lithe": "./dist/bin.js"
+  },
+  "main": "./dist/bin.js",
+  "types": "./dist/bin.d.ts",
+  "files": [
+    "dist",
+    "src",
+    "README.md"
+  ],
+  "publishConfig": {
+    "access": "public",
+    "provenance": true
+  },
+  "dependencies": {
+    "@lithe/app": "0.1.0",
+    "@lithe/core": "0.1.0"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json"
+  }
+}
