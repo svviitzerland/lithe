@@ -5,7 +5,9 @@ Wants=network-online.target
 
 [Service]
 # Needs port 22, and nothing else. No state, no keys, no config file.
-ExecStart=/usr/local/bin/lithe-relay --addr :22 --pipe ${LITHE_PIPE_ORIGIN} -v
+# Unquoted on purpose: systemd splits $VAR into words, so one app or many
+# both work from the same unit.
+ExecStart=/usr/local/bin/lithe-relay --addr :22 $LITHE_PIPE_ARGS -v
 EnvironmentFile=/etc/default/lithe-pipe
 Restart=always
 RestartSec=2
