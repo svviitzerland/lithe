@@ -1,4 +1,4 @@
-module github.com/lithe-sh/relay
+module github.com/svviitzerland/lithe/relay
 
 go 1.24
 

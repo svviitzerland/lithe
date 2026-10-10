@@ -14,7 +14,7 @@ export function configBlock(hosts: string[], proxyCommand: string): string {
     "# Lets plain `ssh <host>` reach a lithe app that is served over HTTPS.",
     "# The ssh session is end-to-end encrypted with the app itself; this only",
     "# carries bytes. Delete this block to undo.",
-    "# https://github.com/lithe-sh/lithe",
+    "# https://github.com/svviitzerland/lithe",
     `Host ${hosts.join(" ")}`,
     `  ProxyCommand ${proxyCommand} pipe %h`,
     "  StrictHostKeyChecking accept-new",

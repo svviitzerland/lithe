@@ -155,7 +155,7 @@ bun -e 'import {fingerprintFor} from "@lithe/app/cloudflare-ssh"; console.log(aw
 - \`io.ctx.pubkey\` is the visitor's verified SSH key fingerprint: a stable user
   id with no signup.
 - A relay can also serve this app over plain \`ssh\` with nothing installed on
-  the visitor's side — see https://github.com/lithe-sh/lithe/blob/main/docs/RELAY.md
+  the visitor's side — see https://github.com/svviitzerland/lithe/blob/main/docs/RELAY.md
 `;
 
 /** Write a ready-to-deploy app: one file of logic, two one-line adapters. */

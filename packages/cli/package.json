@@ -11,10 +11,10 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/lithe-sh/lithe.git",
+    "url": "git+https://github.com/svviitzerland/lithe.git",
     "directory": "packages/cli"
   },
-  "homepage": "https://github.com/lithe-sh/lithe#readme",
+  "homepage": "https://github.com/svviitzerland/lithe#readme",
   "type": "module",
   "bin": {
     "lithe": "./dist/bin.js"

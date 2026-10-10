@@ -1,5 +1,7 @@
 <h1>lithe</h1>
 
+[![ci](https://github.com/svviitzerland/lithe/actions/workflows/ci.yml/badge.svg)](https://github.com/svviitzerland/lithe/actions/workflows/ci.yml)
+
 **Design a terminal app. Deploy it anywhere. People reach it with `ssh`.**
 
 ```sh
