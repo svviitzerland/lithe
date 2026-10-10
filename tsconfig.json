@@ -1,0 +1,34 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
+    "strict": true,
+    "noUncheckedIndexedAccess": true,
+    "noUnusedLocals": true,
+    "skipLibCheck": true,
+    "types": ["bun"],
+    "noEmit": true,
+    "allowImportingTsExtensions": true,
+    "verbatimModuleSyntax": true,
+    "paths": {
+      "@lithe/core": ["./packages/core/src/index.ts"],
+      "@lithe/app": ["./packages/app/src/index.ts"],
+      "@lithe/app/vercel": ["./packages/app/src/adapters/vercel.ts"],
+      "@lithe/app/cloudflare": ["./packages/app/src/adapters/cloudflare.ts"],
+      "@lithe/app/node": ["./packages/app/src/adapters/node.ts"],
+      "@lithe/app/bun": ["./packages/app/src/adapters/bun.ts"],
+      "@lithe/app/deno": ["./packages/app/src/adapters/deno.ts"],
+      "@lithe/app/ssh": ["./packages/app/src/ssh.ts"],
+      "@lithe/app/ssh-bun": ["./packages/app/src/adapters/ssh-bun.ts"],
+      "@lithe/app/ssh-ws": ["./packages/app/src/adapters/ssh-ws.ts"],
+      "@lithe/app/cloudflare-ssh": ["./packages/app/src/adapters/cloudflare-ssh.ts"],
+      "@lithe/app/ssh-bun-ws": ["./packages/app/src/adapters/ssh-bun-ws.ts"],
+      "@lithe/app/vercel-ssh": ["./packages/app/src/adapters/vercel-ssh.ts"],
+      "@lithe/ssh": ["./packages/ssh/src/index.ts"]
+    }
+  },
+  "include": ["packages/**/*.ts", "examples/**/*.ts"],
+  "exclude": ["**/dist/**", ".scratch"]
+}

@@ -1,0 +1,31 @@
+{
+  "name": "lithe-monorepo",
+  "private": true,
+  "version": "0.0.1",
+  "workspaces": [
+    "packages/*",
+    "examples/*"
+  ],
+  "scripts": {
+    "typecheck": "bunx tsc --noEmit -p tsconfig.json",
+    "build": "bun run build:core && bun run build:ssh && bun run build:app && bun run build:cli",
+    "build:core": "cd packages/core && bunx tsc -p tsconfig.build.json",
+    "build:app": "cd packages/app && bunx tsc -p tsconfig.build.json",
+    "build:cli": "cd packages/cli && bunx tsc -p tsconfig.build.json",
+    "test": "bun test",
+    "dev": "bun packages/cli/src/bin.ts dev examples/hello/app.ts",
+    "serve": "bun packages/cli/src/bin.ts serve examples/hello/app.ts",
+    "relay": "cd relay && go run . --origin http://127.0.0.1:8787 --allow-private --seed dev",
+    "build:ssh": "cd packages/ssh && bunx tsc -p tsconfig.build.json",
+    "e2e": "./scripts/e2e.sh && ./scripts/e2e-ssh.sh",
+    "ssh": "bun scripts/fixtures/ssh-tcp.ts"
+  },
+  "devDependencies": {
+    "@types/bun": "latest",
+    "@vercel/functions": "^3.9.11",
+    "typescript": "^5.6.0",
+    "vercel": "^63.1.2",
+    "wrangler": "^4.149.0",
+    "ws": "^8.22.0"
+  }
+}

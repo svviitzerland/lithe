@@ -1,0 +1,10 @@
+node_modules
+dist
+.deploy
+.scratch
+.vercel
+.wrangler
+relay/lithe-relay
+lithe-relay-*
+*.log
+.DS_Store
