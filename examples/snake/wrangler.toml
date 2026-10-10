@@ -1,3 +1,8 @@
 name = "lithe-snake"
 main = "worker.ts"
 compatibility_date = "2026-01-01"
+workers_dev = true
+
+routes = [
+  { pattern = "snake.larasati.my.id", custom_domain = true }
+]

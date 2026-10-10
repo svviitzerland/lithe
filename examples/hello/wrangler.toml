@@ -1,3 +1,15 @@
 name = "lithe-hello"
 main = "worker.ts"
 compatibility_date = "2026-01-01"
+
+# Keep the platform hostname working alongside the custom domain.
+workers_dev = true
+
+# A custom domain on a zone you already own. Wrangler provisions the DNS record,
+# so adding a subdomain is the same one-step operation as in the dashboard.
+routes = [
+  { pattern = "tui.farhanaulianda.my.id", custom_domain = true }
+]
+
+# The only secret you need — host key and session signing:
+#   bunx wrangler secret put LITHE_SSH_SEED
