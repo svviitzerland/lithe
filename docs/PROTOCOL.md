@@ -121,26 +121,20 @@ accepts `text/html`:
 
 ## Discovery
 
-`_lithe.<domain>` TXT, semicolon-separated:
+There is no registry and no DNS record. A relay or pipe locates an app by asking
+its hostname, in order:
 
 ```
-_lithe.myapp.com.  TXT  "v=lithe1; origin=https://myapp.vercel.app/api/tui"
+/_lithe/ssh    /api/tui    /tui    /
 ```
 
-`v=lithe1` is required. Unknown keys are ignored, so the format can grow. Relays
-should cache for the record's TTL (ours: 60s floor), require `https`, and refuse
-origins that resolve to loopback, private or link-local addresses.
+A candidate is accepted only when it returns `200` with a JSON body containing a
+numeric `lithe` field. That requirement is what makes discovery safe: being
+reachable over SSH is something a deployment opts into by answering with a
+manifest, not something that can be pointed at it from outside.
 
-When there is no record, a relay may fall back to convention and `GET` these
-paths on the hostname itself, in order:
-
-```
-/api/tui    /tui    /api/lithe    /
-```
-
-A candidate is accepted only if it returns `200` with a JSON body containing a
-numeric `lithe` field. That requirement is what makes probing safe: being
-discoverable is something a deployment opts into by answering with a manifest.
+Relays should cache per hostname for a short time (ours: 60 s), require `https`,
+and refuse origins that resolve to loopback, private or link-local addresses.
 
 ## Versioning
 

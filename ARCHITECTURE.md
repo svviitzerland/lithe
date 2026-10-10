@@ -140,12 +140,17 @@ rather than per-app because the host key is sent during key exchange, before the
 username is known. Per-app fingerprints require per-app addresses; see
 [docs/RELAY.md](docs/RELAY.md).
 
-**Discovery by DNS TXT.**
-`_lithe.<domain>  TXT  "v=lithe1; origin=https://…"` means a shared relay needs no
-database, no account system, and no trust relationship with app authors — the
-domain owner is the only authority, and verification is inherent. The relay
-refuses `http://` and origins that resolve to private addresses, so a TXT record
-cannot turn it into an internal-network proxy.
+**Discovery by asking the hostname.**
+A relay locates an app by requesting a manifest from the hostname the user typed,
+trying `/_lithe/ssh`, `/api/tui`, `/tui`, `/`. No registry, no account system, no
+DNS record to publish: whoever controls the hostname controls what answers, so
+verification is inherent. An earlier design used a `_lithe` TXT record; it was
+removed because it only mattered when the app was *not* at the hostname, which
+in practice never happens — adding a custom domain in the Vercel or Cloudflare
+dashboard puts the app there. One less concept, one less thing to get wrong.
+
+The relay refuses `http://` and origins that resolve to private addresses, so a
+hostname cannot turn it into an internal-network proxy.
 
 **Input is coalesced and rate-limited.**
 Held keys, pastes and resize storms are batched into one request per 8 ms window,

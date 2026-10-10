@@ -10,18 +10,29 @@ The handler accepts either calling convention — a Web `Request` or Node's
 handlers.
 
 ```ts
-// api/tui.ts
-import { vercel } from "@lithe/app/vercel";
+// api/tui.ts — one function, both doors
+import { experimental_upgradeWebSocket } from "@vercel/functions";
+import { vercelSsh } from "@lithe/app/vercel-ssh";
 import app from "../app.ts";
 
-const handler = vercel(app);
+const handler = vercelSsh(app, { upgrade: experimental_upgradeWebSocket });
 export const GET = handler;
 export const POST = handler;
 export default handler;
 ```
 
+```json
+{
+  "functions": { "api/tui.ts": { "maxDuration": 300 } },
+  "rewrites": [
+    { "source": "/", "destination": "/api/tui" },
+    { "source": "/_lithe/ssh", "destination": "/api/tui" }
+  ]
+}
+```
+
 ```sh
-vercel env add LITHE_SECRET    # any long random string
+vercel env add LITHE_SSH_SEED    # any long random string
 vercel deploy --prod
 ```
 
@@ -52,7 +63,7 @@ compatibility_date = "2026-01-01"
 ```
 
 ```sh
-wrangler secret put LITHE_SECRET
+wrangler secret put LITHE_SSH_SEED
 wrangler deploy
 ```
 
@@ -88,45 +99,42 @@ framework uses.
 
 ## Then: getting SSH to it
 
-### The zero-config path
-
-If your app is reachable at its own hostname, there is nothing to do. The relay
-probes `https://<hostname>/api/tui`, then `/tui`, `/api/lithe`, then `/`, and
-accepts the first one that answers with a lithe manifest:
+Nothing to register, nothing to publish. Your app is found at the hostname it is
+already served from:
 
 ```sh
-ssh my-app.vercel.app@<relay>
-ssh my-app.username.workers.dev@<relay>
+lithe ssh my-app.vercel.app              # no setup at all
+ssh my-app.vercel.app@<relay>            # relay mode, stock ssh
+ssh my-app.com                           # pipe mode, stock ssh, no username
 ```
 
-This exists because you cannot publish a DNS record under `vercel.app` or
-`workers.dev`. The manifest requirement is the consent check: a relay cannot be
-pointed at a host that has not deployed a lithe app.
+A relay or pipe discovers the app by asking the hostname for its manifest, trying
+`/_lithe/ssh`, then `/api/tui`, `/tui`, `/`, and accepting the first that answers
+with `{"lithe":1,...}`. That requirement is the consent check: a relay cannot be
+aimed at a host that has not deployed a lithe app.
 
-### The DNS path
+### Using your own domain
 
-Authoritative, and the only option when the endpoint is not at the hostname a
-user types — your own domain, a path under an existing site, a different host
-entirely:
-
-```
-_lithe.myapp.com.   TXT   "v=lithe1; origin=https://my-app.vercel.app/api/tui"
-```
+Add it in the Vercel or Cloudflare dashboard, the way you would for any site.
+That is the whole procedure — there is no lithe-specific DNS record, no
+registration and no config file:
 
 ```sh
-dig +short TXT _lithe.myapp.com       # check it
-ssh myapp.com@<relay>                 # use it
+ssh myapp.com@<relay>     # relay mode
+ssh myapp.com             # pipe mode, or after `lithe setup`
 ```
 
-No account, no dashboard: the relay reads the record on first connect and caches
-it for the TTL. Change the record to move your app; the next session follows.
+The relay finds the app by asking the hostname itself for a manifest, trying
+`/_lithe/ssh`, then `/api/tui`, `/tui`, `/`. Whatever your domain serves over
+HTTPS is what answers `ssh`.
 
 ## Environment and bindings
 
 | Variable | Purpose |
 |---|---|
-| `LITHE_SECRET` | HMAC key for session blobs. **Set this.** Without it blobs are unsigned, and a hostile relay could tamper with your app's state. |
-| `LITHE_RELAY` | Relay hostname used in the connect string on your landing page. Default `lithe.sh`. |
+| `LITHE_SSH_SEED` | **The one to set.** It is the SSH host key — same seed, same fingerprint, forever — and it signs session blobs in relay mode. |
+| `LITHE_SECRET` | Optional. Overrides the signing key if you want it separate from the host key. |
+| `LITHE_RELAY` | Optional. Relay hostname shown in the connect string on your landing page. |
 
 Everything the platform gives you reaches the app as `io.env` — the Worker `env`
 on Cloudflare, `process.env` elsewhere:

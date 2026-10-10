@@ -160,17 +160,23 @@ export default cloudflareSsh(app);
 ```
 
 ```ts
-// api/ssh.ts — Vercel
+// api/tui.ts — Vercel: one function, both doors
 import { experimental_upgradeWebSocket } from "@vercel/functions";
 import { vercelSsh } from "@lithe/app/vercel-ssh";
 import app from "../app.ts";
-export const GET = vercelSsh(app, { upgrade: experimental_upgradeWebSocket, seed: process.env.LITHE_SSH_SEED });
+const handler = vercelSsh(app, { upgrade: experimental_upgradeWebSocket });
+export const GET = handler;
+export const POST = handler;
+export default handler;
 ```
 
 ```sh
-wrangler secret put LITHE_SSH_SEED   # the host key: same seed, same fingerprint, forever
+wrangler secret put LITHE_SSH_SEED   # the only secret: host key and session signing
 wrangler deploy
 ```
+
+Using your own domain? Add it in the dashboard, as you would for any site. There
+is no lithe-specific DNS record to publish and nothing to register.
 
 Adapters also ship for Deno Deploy, Bun and Node. Platform bindings reach the app
 as `io.env`, so KV, D1, R2 and secrets work as usual:
@@ -218,15 +224,10 @@ ssh my-app.vercel.app   # stock ssh, no username, no relay
 ```
 
 **Relay.** A small Go binary that terminates SSH and speaks the frame protocol to
-your endpoint over HTTP. Nothing to install for the visitor, and it finds your app
-by probing `https://<hostname>/api/tui` — so a platform-assigned hostname works
-with no configuration. Point it at your own domain with one DNS record instead:
-
-```
-_lithe.myapp.com.   TXT   "v=lithe1; origin=https://my-app.vercel.app/api/tui"
-```
-
-See [docs/RELAY.md](docs/RELAY.md).
+your endpoint over HTTP. Nothing to install for the visitor, and nothing to
+register: it finds your app by asking the hostname for a manifest. A
+platform-assigned hostname works immediately, and so does your own domain the
+moment you add it in the dashboard. See [docs/RELAY.md](docs/RELAY.md).
 
 ### Why `ssh myapp.com` needs a listener
 

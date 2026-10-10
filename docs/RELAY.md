@@ -114,18 +114,16 @@ my-app.com.  SSHFP  4 2 <sha256 of the key, hex>
 ## Many apps, one relay
 
 ```sh
-./lithe-relay --addr :22 --seed "$SEED"            # dns + probe (default)
+./lithe-relay --addr :22 --seed "$SEED"            # discovery by hostname (default)
 ```
 
-Two ways an app gets found, tried in this order:
+Apps are found by asking their hostname. The relay tries `/_lithe/ssh`, then
+`/api/tui`, `/tui`, `/`, and accepts the first that answers with a lithe
+manifest. Nothing to register, no DNS record to publish, no config to edit — a
+platform hostname works immediately, and so does a custom domain the moment you
+add it in the Vercel or Cloudflare dashboard.
 
-1. **`_lithe.<domain>` TXT** — authoritative. Points anywhere.
-2. **Probing** — `GET https://<domain>/api/tui`, then `/tui`, `/api/lithe`, `/`.
-   A candidate counts only if it answers with a lithe manifest. This is what
-   makes `ssh my-app.vercel.app@your-relay` work with nothing configured, since
-   nobody can publish DNS under `vercel.app`.
-
-Disable either with `--dns=false` or `--probe=false`. Or pin a static map:
+Turn it off with `--probe=false` and pin an allowlist instead:
 
 ```json
 // routes.json
@@ -175,8 +173,7 @@ cell grid and one HTTP connection.
 | `--origin` | — | serve a single app, ignore the username |
 | `--app-id` | — | app name reported to a single origin; also the host-key label |
 | `--routes` | — | JSON file: ssh username → origin URL |
-| `--dns` | `true` | resolve unknown usernames via `_lithe.<domain>` TXT |
-| `--probe` | `true` | if DNS has nothing, probe well-known paths on the hostname |
+| `--probe` | `true` | find an app by asking its hostname for a manifest |
 | `--seed` | — | host key seed; **set it**, or the fingerprint changes on restart |
 | `--allow-private` | `false` | permit `http://` and private-network origins (local dev) |
 | `--max-rps` | `30` | origin requests per second, per session |
@@ -195,9 +192,8 @@ All of them also read `LITHE_`-prefixed environment variables.
   fingerprint is handed to the app as a stable user id and the app decides what
   it means. Connections without a key arrive as `anon`.
 - **Origins must be `https`** and must not resolve to loopback, private or
-  link-local addresses. Without this a TXT record could aim the relay at someone's
-  internal network. `--allow-private` disables the check for local development
-  only.
+  link-local addresses, so a hostname cannot aim the relay at someone's internal
+  network. `--allow-private` disables the check for local development only.
 - **Probing requires a lithe manifest.** The relay will not forward a session to
   a host that does not answer `{"lithe":1,...}`, so discovery by convention
   cannot be used to proxy arbitrary traffic. Responses are capped at 64 kB with a
@@ -215,7 +211,7 @@ Because SSH has no SNI. The server sees a TCP connection and an encrypted
 username, never a hostname, so a shared relay cannot tell `a.com` from `b.com` if
 both point at the same IP. Your options, in order of effort:
 
-1. **`ssh yourapp.com@shared-relay`** — zero effort, one DNS TXT record.
+1. **`ssh yourapp.com@shared-relay`** — zero effort, nothing to configure.
 2. **Run your own relay** — one binary, one A record, bare hostname.
 3. **An address per app** — a relay with a routed IPv6 `/64` can give every app
    its own `AAAA` and recover the app from the connection's local address. Planned;

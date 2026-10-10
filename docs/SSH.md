@@ -69,7 +69,7 @@ export default cloudflareSsh(app);
 ```
 
 ```sh
-wrangler secret put LITHE_SSH_SEED     # any long random string
+wrangler secret put LITHE_SSH_SEED     # the only secret you need
 wrangler deploy
 ```
 
@@ -80,21 +80,24 @@ a whole SSH session.
 ### Vercel
 
 ```ts
-// api/ssh.ts
+// api/tui.ts — one function answers HTTP and SSH
 import { experimental_upgradeWebSocket } from "@vercel/functions";
 import { vercelSsh } from "@lithe/app/vercel-ssh";
 import app from "../app.ts";
 
-export const GET = vercelSsh(app, {
-  upgrade: experimental_upgradeWebSocket,
-  seed: process.env.LITHE_SSH_SEED,
-});
+const handler = vercelSsh(app, { upgrade: experimental_upgradeWebSocket });
+export const GET = handler;
+export const POST = handler;
+export default handler;
 ```
 
 ```json
 {
-  "functions": { "api/ssh.js": { "maxDuration": 300 } },
-  "rewrites": [{ "source": "/_lithe/ssh", "destination": "/api/ssh" }]
+  "functions": { "api/tui.ts": { "maxDuration": 300 } },
+  "rewrites": [
+    { "source": "/", "destination": "/api/tui" },
+    { "source": "/_lithe/ssh", "destination": "/api/tui" }
+  ]
 }
 ```
 

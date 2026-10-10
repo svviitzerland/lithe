@@ -33,9 +33,9 @@ itself and removes the relay from the trust model entirely.
   and route from that — which also unlocks a **per-app host key**, since the app
   is known before key exchange. This is the clean answer to bare `ssh yourapp.com`
   on shared infrastructure.
-- **`lithe deploy`.** Detect the platform, push, create the TXT record through the
-  DNS provider's API, print the ssh command. The current four manual steps are
-  three too many.
+- **`lithe deploy`.** Detect the platform, push, print the ssh command and the
+  host key fingerprint to publish. Discovery needs no DNS any more, so this is
+  now a small wrapper rather than a provider integration.
 - **Session handoff.** The state blob already makes sessions portable; a signed
   resume token would let a dropped connection reattach to the same screen instead
   of restarting the app.
