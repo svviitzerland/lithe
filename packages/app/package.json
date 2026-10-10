@@ -1,0 +1,103 @@
+{
+  "name": "@lithe/app",
+  "version": "0.1.0",
+  "description": "Write a TUI once, serve it over SSH from any serverless platform. Vercel, Cloudflare Workers, Deno, Bun, Node.",
+  "keywords": [
+    "tui",
+    "ssh",
+    "serverless",
+    "terminal",
+    "vercel",
+    "cloudflare-workers",
+    "edge"
+  ],
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/lithe-sh/lithe.git",
+    "directory": "packages/app"
+  },
+  "homepage": "https://github.com/lithe-sh/lithe#readme",
+  "type": "module",
+  "sideEffects": false,
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "bun": "./src/index.ts",
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./vercel": {
+      "bun": "./src/adapters/vercel.ts",
+      "types": "./dist/adapters/vercel.d.ts",
+      "default": "./dist/adapters/vercel.js"
+    },
+    "./cloudflare": {
+      "bun": "./src/adapters/cloudflare.ts",
+      "types": "./dist/adapters/cloudflare.d.ts",
+      "default": "./dist/adapters/cloudflare.js"
+    },
+    "./node": {
+      "bun": "./src/adapters/node.ts",
+      "types": "./dist/adapters/node.d.ts",
+      "default": "./dist/adapters/node.js"
+    },
+    "./bun": {
+      "bun": "./src/adapters/bun.ts",
+      "types": "./dist/adapters/bun.d.ts",
+      "default": "./dist/adapters/bun.js"
+    },
+    "./deno": {
+      "bun": "./src/adapters/deno.ts",
+      "types": "./dist/adapters/deno.d.ts",
+      "default": "./dist/adapters/deno.js"
+    },
+    "./ssh": {
+      "bun": "./src/ssh.ts",
+      "types": "./dist/ssh.d.ts",
+      "default": "./dist/ssh.js"
+    },
+    "./ssh-bun": {
+      "bun": "./src/adapters/ssh-bun.ts",
+      "types": "./dist/adapters/ssh-bun.d.ts",
+      "default": "./dist/adapters/ssh-bun.js"
+    },
+    "./ssh-ws": {
+      "bun": "./src/adapters/ssh-ws.ts",
+      "types": "./dist/adapters/ssh-ws.d.ts",
+      "default": "./dist/adapters/ssh-ws.js"
+    },
+    "./cloudflare-ssh": {
+      "bun": "./src/adapters/cloudflare-ssh.ts",
+      "types": "./dist/adapters/cloudflare-ssh.d.ts",
+      "default": "./dist/adapters/cloudflare-ssh.js"
+    },
+    "./ssh-bun-ws": {
+      "bun": "./src/adapters/ssh-bun-ws.ts",
+      "types": "./dist/adapters/ssh-bun-ws.d.ts",
+      "default": "./dist/adapters/ssh-bun-ws.js"
+    },
+    "./vercel-ssh": {
+      "bun": "./src/adapters/vercel-ssh.ts",
+      "types": "./dist/adapters/vercel-ssh.d.ts",
+      "default": "./dist/adapters/vercel-ssh.js"
+    }
+  },
+  "files": [
+    "dist",
+    "src",
+    "README.md"
+  ],
+  "publishConfig": {
+    "access": "public",
+    "provenance": true
+  },
+  "dependencies": {
+    "@lithe/core": "0.1.0",
+    "@lithe/ssh": "0.1.0"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json"
+  }
+}
