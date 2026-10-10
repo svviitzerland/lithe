@@ -1,0 +1,43 @@
+{
+  "name": "@lithe/core",
+  "version": "0.1.0",
+  "description": "Zero-dependency terminal cell renderer: layout, ANSI diffing, key decoding. Runs on any JS runtime.",
+  "keywords": [
+    "tui",
+    "terminal",
+    "ansi",
+    "cli",
+    "renderer",
+    "ssh"
+  ],
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/lithe-sh/lithe.git",
+    "directory": "packages/core"
+  },
+  "homepage": "https://github.com/lithe-sh/lithe#readme",
+  "type": "module",
+  "sideEffects": false,
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "bun": "./src/index.ts",
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "src",
+    "README.md"
+  ],
+  "publishConfig": {
+    "access": "public",
+    "provenance": true
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json"
+  }
+}
