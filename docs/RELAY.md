@@ -57,8 +57,14 @@ app-one.com.  AAAA  2a09:xxxx:1::1
 app-two.com.  AAAA  2a09:xxxx:1::2
 ```
 
-Both answer bare `ssh`, with nothing on the client. IPv4 has no spare addresses
-to do this with, which is the only reason relay mode still exists.
+Both answer bare `ssh`, with nothing on the client, and each presents its own
+host key — the app is known from the address before key exchange begins, which a
+relay that terminates SSH can never manage. IPv4 has no spare addresses to do
+this with, which is the only reason relay mode still exists.
+
+Secondary IPv6 addresses are not configured by DHCPv6, so they disappear on
+reboot and every app but the first stops answering. `relay/deploy/lithe-addrs`
+and its unit put them back at boot, ordered before the pipe starts.
 
 ### What it costs
 

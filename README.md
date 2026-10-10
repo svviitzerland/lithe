@@ -105,42 +105,42 @@ Three consequences:
 
 ## Try the live demos
 
-These are really deployed on Cloudflare Workers and Vercel, and really answer
-`ssh`.
-
-**Through a pipe — nothing installed, stock `ssh`:**
+Really deployed on Cloudflare Workers, really answering `ssh`. Nothing to
+install, no key to set up, no domain involved:
 
 ```sh
-ssh 2406:da18:13ff:fc00::10     # the tour
-ssh 2406:da18:13ff:fc00::20     # snake
+ssh 18.138.186.97.sslip.io                  # the tour
+ssh 2406-da18-13ff-fc00--20.sslip.io        # snake
 ```
 
-One pipe, two apps, routed by destination address. Each presents its own host
-key, derived from its own seed, which the pipe does not have. (Bare addresses
-until the DNS records are in; a `AAAA` record turns each into a name.)
+Those names are just the pipe's addresses spelled out by
+[sslip.io](https://sslip.io), so no domain is needed to reach them. The raw
+addresses work the same: `ssh 18.138.186.97`, `ssh 2406:da18:13ff:fc00::20`.
+
+One pipe serves both, routed by destination address, and each app presents **its
+own** host key — the pipe holds neither:
+
+| | |
+|---|---|
+| the tour | `SHA256:hGmH/KOjEpCTbqXMdcspKAk/dzuuTKpJq5PbJAeB4i8` |
+| snake | `SHA256:YtqnzCMpDfOImfcjuolvk9xw+MpR2KCFTD0Z6soL4I4` |
+
+The first key is also what `lithe-hello.vercel.app` presents — one seed, two
+platforms, so you can move between them without a host-key warning.
+
+IPv4 addresses are scarce, so the one on this box serves a single app; snake
+lives on IPv6, where addresses are free. That asymmetry is the whole reason §5.1
+of the [technical note](docs/SSH-ON-SERVERLESS.md) recommends a `/64`.
 
 **From this repo, while you are building:**
 
 ```sh
 git clone https://github.com/svviitzerland/lithe && cd lithe && bun install
-
-bunx @lithe/cli ssh tui.farhanaulianda.my.id        # custom domain, Workers
-bunx @lithe/cli ssh snake.larasati.my.id            # a second zone
-bunx @lithe/cli ssh lithe-hello.vercel.app          # the same app, on Vercel
+bunx @lithe/cli ssh lithe-hello.vercel.app     # a deployment with no pipe yet
 ```
 
-`lithe ssh` bridges from your own machine so you can test a deployment before a
-pipe is in front of it. It is a developer tool; your users never run it.
-
-Expected host keys, so you can check them before you trust them:
-
-| | |
-|---|---|
-| `lithe-hello.*` and `tui.farhanaulianda.my.id` | `SHA256:hGmH/KOjEpCTbqXMdcspKAk/dzuuTKpJq5PbJAeB4i8` |
-| `lithe-snake.*` and `snake.larasati.my.id` | `SHA256:YtqnzCMpDfOImfcjuolvk9xw+MpR2KCFTD0Z6soL4I4` |
-
-The first is one key presented from two platforms — Workers and Vercel sharing a
-seed — which is what lets you move between them without a host-key warning.
+`lithe ssh` bridges from your own machine so you can test before a pipe is in
+front of it. It is a developer tool; your users never run it.
 
 ## Run it yourself in 60 seconds
 
