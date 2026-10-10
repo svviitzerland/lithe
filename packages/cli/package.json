@@ -24,6 +24,7 @@
   "files": [
     "dist",
     "src",
+    "bridge",
     "README.md"
   ],
   "publishConfig": {
@@ -32,7 +33,8 @@
   },
   "dependencies": {
     "@lithe/app": "0.1.0",
-    "@lithe/core": "0.1.0"
+    "@lithe/core": "0.1.0",
+    "@lithe/ssh": "0.1.0"
   },
   "scripts": {
     "build": "tsc -p tsconfig.build.json"

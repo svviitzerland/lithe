@@ -5,6 +5,7 @@ import { RemoteRuntime } from "./remote.ts";
 import { scaffold } from "./init.ts";
 import { pipeToWebSocket, sshArgs } from "./pipe.ts";
 import { setup } from "./setup.ts";
+import { deploy } from "./deploy.ts";
 
 const USAGE = `lithe — write a TUI once, serve it over SSH from anywhere.
 
@@ -15,6 +16,7 @@ const USAGE = `lithe — write a TUI once, serve it over SSH from anywhere.
   lithe ssh <host> [ssh args]   ssh into a deployed app with no relay in between
   lithe pipe <host>             the ProxyCommand half of 'lithe ssh'
   lithe setup [--write]         teach plain 'ssh' about lithe apps, once
+  lithe deploy                  deploy, generating and installing the host key for you
 
 Default file: ./app.ts
 `;
@@ -96,16 +98,26 @@ try {
     const proc = Bun.spawn(["ssh", ...args], { stdio: ["inherit", "inherit", "inherit"] });
     process.exit(await proc.exited);
   } else if (cmd === "setup") {
-    const self = process.argv[1]?.endsWith(".ts")
-      ? `${process.execPath} ${process.argv[1]}`
-      : "lithe";
     const hostArg = arg("--host");
     await setup({
-      proxyCommand: self,
       write: process.argv.includes("--write"),
       ...(hostArg ? { hosts: [hostArg] } : {}),
       ...(arg("--path") ? { path: arg("--path")! } : {}),
+      ...(arg("--bridge") ? { bridgePath: arg("--bridge")! } : {}),
     });
+  } else if (cmd === "deploy") {
+    const target = process.argv.includes("--vercel")
+      ? ("vercel" as const)
+      : process.argv.includes("--cloudflare")
+        ? ("cloudflare" as const)
+        : undefined;
+    process.exit(
+      await deploy({
+        ...(target ? { target } : {}),
+        dryRun: process.argv.includes("--dry-run"),
+        rotate: process.argv.includes("--rotate"),
+      }),
+    );
   } else if (cmd === "init") {
     await scaffold(process.argv[3] ?? ".");
   } else {
