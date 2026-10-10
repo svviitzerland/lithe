@@ -1,4 +1,4 @@
-import { readFile, writeFile } from "node:fs/promises";
+import { copyFile, readFile, writeFile } from "node:fs/promises";
 import { homedir } from "node:os";
 import { join } from "node:path";
 
@@ -54,6 +54,13 @@ export async function setup(opts: SetupOptions): Promise<void> {
     existing = await readFile(file, "utf8");
   } catch {
     /* no config yet */
+  }
+
+  // Never edit someone's ssh config without leaving them a way back.
+  if (existing) {
+    const backup = `${file}.lithe-backup`;
+    await copyFile(file, backup);
+    process.stdout.write(`backed up ${file} to ${backup}\n`);
   }
 
   if (existing.includes(BEGIN)) {
