@@ -10,6 +10,8 @@ import (
 	"flag"
 	"fmt"
 	"log"
+	"net"
+	"net/http"
 	"os"
 	"strings"
 	"time"
@@ -33,6 +35,8 @@ func main() {
 		idle         = flag.Duration("idle", 10*time.Minute, "disconnect after this much inactivity")
 		maxDur       = flag.Duration("max-session", 4*time.Hour, "hard cap on one session")
 		timeout      = flag.Duration("timeout", 10*time.Second, "origin request timeout")
+		pipe         = flag.String("pipe", os.Getenv("LITHE_PIPE"), "dumb-pipe mode: splice TCP onto this app's WebSocket and parse nothing")
+		pipeMap      = flag.String("pipe-map", os.Getenv("LITHE_PIPE_MAP"), "JSON file mapping destination IP -> app origin, for one address per app")
 		verbose      = flag.Bool("v", false, "log one line per session")
 		showKey      = flag.Bool("print-fingerprint", false, "print the host key fingerprint and exit")
 	)
@@ -41,6 +45,38 @@ func main() {
 	routes, err := LoadRoutes(*routesPath)
 	if err != nil {
 		log.Fatalf("routes: %v", err)
+	}
+
+	// Pipe mode terminates nothing, so there is no host key, no auth and no
+	// discovery — just bytes. It is the only mode where a stock `ssh app.com`
+	// works with nothing configured on the client.
+	if *pipe != "" || *pipeMap != "" {
+		byAddr, err := LoadPipeMap(*pipeMap)
+		if err != nil {
+			log.Fatalf("pipe-map: %v", err)
+		}
+		ln, err := net.Listen("tcp", *addr)
+		if err != nil {
+			log.Fatal(err)
+		}
+		log.Printf("lithe pipe on %s — terminating nothing", *addr)
+		if *pipe != "" {
+			log.Printf("  all connections -> %s", *pipe)
+		}
+		for ip, origin := range byAddr {
+			log.Printf("  %s -> %s", ip, origin)
+		}
+		client := &http.Client{Transport: &http.Transport{
+			MaxIdleConns:      256,
+			IdleConnTimeout:   90 * time.Second,
+			ForceAttemptHTTP2: true,
+		}}
+		log.Fatal(ServePipe(ln, PipeConfig{
+			Origin:    *pipe,
+			ByAddress: byAddr,
+			Timeout:   *timeout,
+			Verbose:   *verbose,
+		}, client))
 	}
 
 	label := "relay"
