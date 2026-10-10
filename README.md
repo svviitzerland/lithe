@@ -5,8 +5,13 @@
 **Design a terminal app. Deploy it anywhere. People reach it with `ssh`.**
 
 ```sh
+lithe setup --write           # once, ever — teaches ssh about lithe apps
 ssh my-app.vercel.app
 ```
+
+Or skip the setup entirely with `lithe ssh my-app.vercel.app`, which needs no
+configuration at all. Plain `ssh` on its own cannot work without one of the two:
+there is no listener on port 22 to connect to — [see why](#why-ssh-myappcom-needs-one-of-the-two).
 
 No server to keep alive, no port 22 to open, no TLS to manage, no browser, no
 bundle. Your app is one file that deploys to Vercel or Cloudflare Workers like
@@ -88,7 +93,34 @@ Three consequences:
 - **A keystroke is not a request.** The connection is already open and state is
   already in memory. Measured **p50 26 ms** on Workers.
 
-## Try it in 60 seconds
+## Try the live demos
+
+These are really deployed, and really answer `ssh`:
+
+```sh
+git clone https://github.com/svviitzerland/lithe && cd lithe && bun install
+bun packages/cli/src/bin.ts setup --write      # one block in ~/.ssh/config
+
+ssh lithe-hello.farhanauliandastudy.workers.dev      # the tour, on Cloudflare
+ssh lithe-snake.farhanauliandastudy.workers.dev      # a game, animated by io.wake
+ssh lithe-guestbook.farhanauliandastudy.workers.dev  # your ssh key is your name
+ssh lithe-hello.vercel.app                           # the same app, on Vercel
+```
+
+Expected host keys, derived from each deployment's seed — the point being that
+you can check them before you trust them:
+
+| | |
+|---|---|
+| `lithe-hello.*.workers.dev` and `lithe-hello.vercel.app` | `SHA256:hGmH/KOjEpCTbqXMdcspKAk/dzuuTKpJq5PbJAeB4i8` |
+| `lithe-snake.*.workers.dev` | `SHA256:YtqnzCMpDfOImfcjuolvk9xw+MpR2KCFTD0Z6soL4I4` |
+| `lithe-guestbook.*.workers.dev` | `SHA256:kq6y6IgsJoi3662b/LvQS2/eNx99ugiM9gToBdzgN2U` |
+
+The first two are the same key on two different platforms, sharing one seed —
+which is what lets you move between Vercel and Cloudflare without clients seeing
+a host-key warning.
+
+## Run it yourself in 60 seconds
 
 ```sh
 bun install

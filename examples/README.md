@@ -13,14 +13,20 @@ Or over real SSH, against the live deployments:
 
 ```sh
 bunx @lithe/cli ssh lithe-hello.farhanauliandastudy.workers.dev
+bunx @lithe/cli ssh lithe-snake.farhanauliandastudy.workers.dev
+bunx @lithe/cli ssh lithe-guestbook.farhanauliandastudy.workers.dev
 bunx @lithe/cli ssh lithe-hello.vercel.app
 ```
+
+`lithe ssh` needs no configuration. To use the plain `ssh` command instead, run
+`lithe setup --write` once — without it there is nothing listening on port 22 and
+`ssh` will simply hang.
 
 | | what it shows | deployed |
 |---|---|---|
 | [`hello`](hello) | tabs, lists, an `await fetch` inside `update`, live data on screen | ✅ [Workers](https://lithe-hello.farhanauliandastudy.workers.dev) · [Vercel](https://lithe-hello.vercel.app) — both answer `ssh` |
 | [`snake`](snake) | animation with no running process — `io.wake(ms)` drives the clock | ✅ [Workers](https://lithe-snake.farhanauliandastudy.workers.dev) |
-| [`guestbook`](guestbook) | identity from the SSH key, and state that outlives the session via a KV binding | — |
+| [`guestbook`](guestbook) | identity from the SSH key, and state that outlives the session via a KV binding | ✅ [Workers](https://lithe-guestbook.farhanauliandastudy.workers.dev) (no store bound, so entries vanish) |
 
 ## hello
 
