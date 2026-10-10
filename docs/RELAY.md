@@ -43,8 +43,8 @@ one address per app, out of a `/64` you already have:
 ```json
 // pipes.json
 {
-  "2a09:xxxx:1::1": "https://app-one.vercel.app",
-  "2a09:xxxx:1::2": "https://app-two.workers.dev"
+  "2001:db8:1::1": "https://app-one.vercel.app",
+  "2001:db8:1::2": "https://app-two.workers.dev"
 }
 ```
 
@@ -53,8 +53,8 @@ one address per app, out of a `/64` you already have:
 ```
 
 ```
-app-one.com.  AAAA  2a09:xxxx:1::1
-app-two.com.  AAAA  2a09:xxxx:1::2
+app-one.com.  AAAA  2001:db8:1::1
+app-two.com.  AAAA  2001:db8:1::2
 ```
 
 Both answer bare `ssh`, with nothing on the client, and each presents its own

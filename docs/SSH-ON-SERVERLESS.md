@@ -156,14 +156,14 @@ IPv6 it is free: a single `/64` holds 2⁶⁴ addresses, and a host can carry as
 as its interface allows.
 
 ```
-app-one.com.  AAAA  2406:da18:13ff:fc00::10
-app-two.com.  AAAA  2406:da18:13ff:fc00::20
+app-one.com.  AAAA  2001:db8:1::10
+app-two.com.  AAAA  2001:db8:1::20
 ```
 
 ```json
 {
-  "2406:da18:13ff:fc00::10": "https://app-one.example",
-  "2406:da18:13ff:fc00::20": "https://app-two.example"
+  "2001:db8:1::10": "https://app-one.example",
+  "2001:db8:1::20": "https://app-two.example"
 }
 ```
 

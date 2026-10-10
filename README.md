@@ -105,42 +105,48 @@ Three consequences:
 
 ## Try the live demos
 
-Really deployed on Cloudflare Workers, really answering `ssh`. Nothing to
-install, no key to set up, no domain involved:
-
-```sh
-ssh 18.138.186.97.sslip.io                  # the tour
-ssh 2406-da18-13ff-fc00--20.sslip.io        # snake
-```
-
-Those names are just the pipe's addresses spelled out by
-[sslip.io](https://sslip.io), so no domain is needed to reach them. The raw
-addresses work the same: `ssh 18.138.186.97`, `ssh 2406:da18:13ff:fc00::20`.
-
-One pipe serves both, routed by destination address, and each app presents **its
-own** host key — the pipe holds neither:
-
-| | |
-|---|---|
-| the tour | `SHA256:hGmH/KOjEpCTbqXMdcspKAk/dzuuTKpJq5PbJAeB4i8` |
-| snake | `SHA256:YtqnzCMpDfOImfcjuolvk9xw+MpR2KCFTD0Z6soL4I4` |
-
-The first key is also what `lithe-hello.vercel.app` presents — one seed, two
-platforms, so you can move between them without a host-key warning.
-
-IPv4 addresses are scarce, so the one on this box serves a single app; snake
-lives on IPv6, where addresses are free. That asymmetry is the whole reason §5.1
-of the [technical note](docs/SSH-ON-SERVERLESS.md) recommends a `/64`.
-
-**From this repo, while you are building:**
+The apps are really deployed on Cloudflare Workers and Vercel. There is no pipe
+in front of them at the moment, so reach them from this repo:
 
 ```sh
 git clone https://github.com/svviitzerland/lithe && cd lithe && bun install
-bunx @lithe/cli ssh lithe-hello.vercel.app     # a deployment with no pipe yet
+
+bunx @lithe/cli ssh tui.farhanaulianda.my.id        # the tour, on Workers
+bunx @lithe/cli ssh snake.larasati.my.id            # a game, on Workers
+bunx @lithe/cli ssh lithe-hello.vercel.app          # the same app, on Vercel
 ```
 
-`lithe ssh` bridges from your own machine so you can test before a pipe is in
-front of it. It is a developer tool; your users never run it.
+`lithe ssh` runs your real `ssh` binary through a local WebSocket bridge, so the
+crypto, the key auth and `known_hosts` are all real. It is a **developer tool**
+— it exists to test a deployment before a pipe is in front of it, and your users
+never run it.
+
+Expected host keys, so you can check them before you trust them:
+
+| | |
+|---|---|
+| `tui.farhanaulianda.my.id`, `lithe-hello.vercel.app` | `SHA256:hGmH/KOjEpCTbqXMdcspKAk/dzuuTKpJq5PbJAeB4i8` |
+| `snake.larasati.my.id` | `SHA256:YtqnzCMpDfOImfcjuolvk9xw+MpR2KCFTD0Z6soL4I4` |
+
+The first key is one host key presented from two different platforms, Workers
+and Vercel, sharing one seed — which is what lets you move between them without
+clients seeing a warning.
+
+### Making them answer plain `ssh`
+
+Put a pipe in front and the same deployments answer `ssh your-app.com` with
+nothing installed on the client. That was measured end to end on a `t4g.nano` in
+Singapore — 46 ms per keystroke, two apps through one pipe, each presenting its
+own host key:
+
+```sh
+GOOS=linux GOARCH=arm64 CGO_ENABLED=0 go build -o lithe-relay ./relay
+scp lithe-relay relay/deploy/{setup-pipe.sh,lithe-pipe.service} admin@box:
+ssh admin@box './setup-pipe.sh https://my-app.vercel.app'
+```
+
+[docs/RELAY.md](docs/RELAY.md) has the whole recipe, including the IPv6 trick for
+serving many apps from one box.
 
 ## Run it yourself in 60 seconds
 
