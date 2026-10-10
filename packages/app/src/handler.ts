@@ -46,7 +46,9 @@ function json(body: unknown, status = 200): Response {
  * - `POST` runs one batch of input and returns the next frame.
  */
 export function createHandler<S, E extends object = Env>(def: AppDef<S, E>, opts: HandlerOpts<E> = {}) {
-  const secret = opts.secret ?? def.secret ?? env("LITHE_SECRET");
+  // One secret to set, not two. LITHE_SSH_SEED already has to exist for the
+  // host key, so it doubles as the session-signing key unless overridden.
+  const secret = opts.secret ?? def.secret ?? env("LITHE_SECRET") ?? env("LITHE_SSH_SEED");
   const relay = opts.relay ?? env("LITHE_RELAY") ?? "lithe.sh";
   const name = def.name ?? "lithe app";
 

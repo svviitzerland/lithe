@@ -1,3 +1,7 @@
 {
-  "functions": { "api/tui.ts": { "maxDuration": 15 } }
+  "functions": { "api/tui.ts": { "maxDuration": 300 } },
+  "rewrites": [
+    { "source": "/", "destination": "/api/tui" },
+    { "source": "/_lithe/ssh", "destination": "/api/tui" }
+  ]
 }

@@ -67,7 +67,7 @@ export function cloudflareSsh<S, E extends object = Env>(
       return createHandler(def, {
         ...opts,
         env: (opts.env ?? env) as E,
-        secret: opts.secret ?? env.LITHE_SECRET,
+        secret: opts.secret ?? env.LITHE_SECRET ?? env.LITHE_SSH_SEED,
         relay: opts.relay ?? env.LITHE_RELAY,
       })(req);
     },

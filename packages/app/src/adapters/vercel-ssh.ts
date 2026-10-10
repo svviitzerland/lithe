@@ -1,4 +1,6 @@
 import type { AppDef, Env } from "../app.ts";
+import { createHandler, type HandlerOpts } from "../handler.ts";
+import { isNodeResponse, sendWebResponse, toWebRequest, type NodeRequestLike } from "../node-bridge.ts";
 import { attachSsh, type SshWsOptions, type WebSocketLike } from "./ssh-ws.ts";
 
 /** The `ws`-style socket Node ecosystems hand you (Vercel, express+ws, etc.). */
@@ -26,7 +28,7 @@ export function nodeWebSocketShim(ws: NodeStyleWebSocket): WebSocketLike {
   } as WebSocketLike;
 }
 
-export interface VercelSshOptions<E extends object = Env> extends SshWsOptions<E> {
+export interface VercelSshOptions<E extends object = Env> extends SshWsOptions<E>, HandlerOpts<E> {
   /**
    * `experimental_upgradeWebSocket` from `@vercel/functions`.
    *
@@ -37,35 +39,53 @@ export interface VercelSshOptions<E extends object = Env> extends SshWsOptions<E
 }
 
 /**
- * SSH over a Vercel WebSocket, terminated inside the function.
+ * One Vercel Function that answers both ways, so an app is still a single file.
  *
- *   // api/ssh.ts
+ *   // api/tui.ts
  *   import { experimental_upgradeWebSocket } from "@vercel/functions";
  *   import { vercelSsh } from "@lithe/app/vercel-ssh";
  *   import app from "../app.ts";
  *
- *   export const GET = vercelSsh(app, {
- *     upgrade: experimental_upgradeWebSocket,
- *     seed: process.env.LITHE_SSH_SEED,
- *   });
+ *   const handler = vercelSsh(app, { upgrade: experimental_upgradeWebSocket });
+ *   export const GET = handler;
+ *   export const POST = handler;
+ *   export default handler;
+ *
+ * With an `Upgrade: websocket` header it carries a whole SSH session; otherwise
+ * it serves the manifest and the stateless frame protocol.
  *
  * A Vercel function is killed at its maximum duration, so a long session ends
  * when the function does. Raise `maxDuration`, and expect `ssh` to exit rather
  * than hang when the ceiling is reached.
  */
 export function vercelSsh<S, E extends object = Env>(def: AppDef<S, E>, opts: VercelSshOptions<E>) {
-  return function handler(req?: Request): Promise<Response> {
-    let app = opts.app;
-    if (!app && req) {
+  const http = createHandler(def, opts);
+
+  return async function handler(
+    req: Request | NodeRequestLike,
+    res?: unknown,
+  ): Promise<Response | void> {
+    const request = res !== undefined && isNodeResponse(res) ? await toWebRequest(req as NodeRequestLike) : (req as Request);
+
+    const upgrade = request.headers?.get?.("upgrade");
+    if (upgrade && upgrade.toLowerCase() === "websocket") {
+      let app = opts.app;
       try {
-        app = new URL(req.url).hostname;
+        app = app ?? new URL(request.url).hostname;
       } catch {
         /* keep the default */
       }
+      return opts.upgrade((ws) =>
+        attachSsh(nodeWebSocketShim(ws), def, { ...opts, ...(app ? { app } : {}) }),
+      );
     }
-    return Promise.resolve(
-      opts.upgrade((ws) => attachSsh(nodeWebSocketShim(ws), def, { ...opts, ...(app ? { app } : {}) })),
-    );
+
+    const out = await http(request);
+    if (res !== undefined && isNodeResponse(res)) {
+      await sendWebResponse(res, out);
+      return;
+    }
+    return out;
   };
 }
 

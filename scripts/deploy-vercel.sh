@@ -15,16 +15,10 @@ OUT=".deploy/$NAME"
 echo "== bundling"
 rm -rf "$OUT"
 mkdir -p "$OUT/api"
-bun build "$EXAMPLE/api/tui.ts" --target=node --format=esm --minify --outfile "$OUT/api/tui.js"
-
-HAS_SSH=0
-if [ -f "$EXAMPLE/api/ssh.ts" ]; then
-  HAS_SSH=1
-  # Vercel's WebSocket helper must stay external: it is wired into the runtime.
-  bun build "$EXAMPLE/api/ssh.ts" --target=node --format=esm --minify \
-    --external @vercel/functions --external ws \
-    --outfile "$OUT/api/ssh.js"
-fi
+# Vercel's WebSocket helper must stay external: it is wired into the runtime.
+bun build "$EXAMPLE/api/tui.ts" --target=node --format=esm --minify \
+  --external @vercel/functions --external ws \
+  --outfile "$OUT/api/tui.js"
 
 cat > "$OUT/package.json" <<JSON
 {
@@ -38,27 +32,15 @@ cat > "$OUT/package.json" <<JSON
 }
 JSON
 
-if [ "$HAS_SSH" = "1" ]; then
-  cat > "$OUT/vercel.json" <<'JSON'
+cat > "$OUT/vercel.json" <<'JSON'
 {
-  "functions": {
-    "api/tui.js": { "maxDuration": 15 },
-    "api/ssh.js": { "maxDuration": 300 }
-  },
+  "functions": { "api/tui.js": { "maxDuration": 300 } },
   "rewrites": [
     { "source": "/", "destination": "/api/tui" },
-    { "source": "/_lithe/ssh", "destination": "/api/ssh" }
+    { "source": "/_lithe/ssh", "destination": "/api/tui" }
   ]
 }
 JSON
-else
-  cat > "$OUT/vercel.json" <<'JSON'
-{
-  "functions": { "api/tui.js": { "maxDuration": 15 } },
-  "rewrites": [{ "source": "/", "destination": "/api/tui" }]
-}
-JSON
-fi
 
 for f in "$OUT"/api/*.js; do
   echo "   $(basename "$f"): $(wc -c <"$f" | tr -d ' ') bytes"

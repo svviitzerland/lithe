@@ -39,11 +39,14 @@ export default defineApp<State>({
 });
 `;
 
-const VERCEL = `import { vercel } from "@lithe/app/vercel";
+const VERCEL = `import { experimental_upgradeWebSocket } from "@vercel/functions";
+import { vercelSsh } from "@lithe/app/vercel-ssh";
 import app from "../app.ts";
 
-// Vercel Functions accept Web-standard handlers on both runtimes.
-const handler = vercel(app);
+// One function, both doors: an SSH session on an Upgrade request, the manifest
+// and the stateless frame protocol otherwise.
+const handler = vercelSsh(app, { upgrade: experimental_upgradeWebSocket });
+
 export const GET = handler;
 export const POST = handler;
 export default handler;
@@ -59,35 +62,21 @@ import app from "./app.ts";
 export default cloudflareSsh(app);
 `;
 
-const VERCEL_SSH = `import { experimental_upgradeWebSocket } from "@vercel/functions";
-import { vercelSsh } from "@lithe/app/vercel-ssh";
-import app from "../app.ts";
-
-// An SSH server inside a Vercel Function. WebSocket support is in public beta.
-export const GET = vercelSsh(app, {
-  upgrade: experimental_upgradeWebSocket,
-  seed: process.env.LITHE_SSH_SEED ?? "",
-});
-
-export default GET;
-`;
-
 const WRANGLER = `name = "NAME"
 main = "worker.ts"
 compatibility_date = "2026-01-01"
 
-# The host key. Same seed, same fingerprint, forever:
+# The only secret you need. It is the host key — same seed, same fingerprint,
+# forever — and it also signs session state in relay mode:
 #   bunx wrangler secret put LITHE_SSH_SEED
-# Signs session state in relay mode:
-#   bunx wrangler secret put LITHE_SECRET
 `;
 
 const VERCEL_JSON = `{
-  "functions": {
-    "api/tui.ts": { "maxDuration": 15 },
-    "api/ssh.ts": { "maxDuration": 300 }
-  },
-  "rewrites": [{ "source": "/_lithe/ssh", "destination": "/api/ssh" }]
+  "functions": { "api/tui.ts": { "maxDuration": 300 } },
+  "rewrites": [
+    { "source": "/", "destination": "/api/tui" },
+    { "source": "/_lithe/ssh", "destination": "/api/tui" }
+  ]
 }
 `;
 
@@ -120,12 +109,15 @@ bun run dev        # try it in this terminal
 ## Deploy
 
 \`\`\`sh
-wrangler secret put LITHE_SSH_SEED    # the host key; keep it
+wrangler secret put LITHE_SSH_SEED    # the only secret; keep it
 wrangler deploy                        # -> https://${name}.<you>.workers.dev
 
 vercel env add LITHE_SSH_SEED
 vercel deploy --prod                   # -> https://${name}.vercel.app
 \`\`\`
+
+Using your own domain? Add it in the Vercel or Cloudflare dashboard. That is the
+whole procedure — there is no lithe-specific DNS record.
 
 ## SSH in
 
@@ -151,6 +143,7 @@ bun -e 'import {fingerprintFor} from "@lithe/app/cloudflare-ssh"; console.log(aw
 
 ## Notes
 
+- \`LITHE_SSH_SEED\` is the only secret: the host key, and the session signing key.
 - Platform bindings (KV, D1, secrets) arrive as \`io.env\`.
 - \`io.ctx.pubkey\` is the visitor's verified SSH key fingerprint: a stable user
   id with no signup.
@@ -166,7 +159,6 @@ export async function scaffold(dir: string): Promise<void> {
   const files: [string, string][] = [
     ["app.ts", APP.replaceAll("NAME", name)],
     ["api/tui.ts", VERCEL],
-    ["api/ssh.ts", VERCEL_SSH],
     ["worker.ts", WORKER],
     ["wrangler.toml", WRANGLER.replaceAll("NAME", name)],
     ["vercel.json", VERCEL_JSON],
