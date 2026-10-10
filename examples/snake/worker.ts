@@ -1,4 +1,4 @@
-import { cloudflare } from "@lithe/app/cloudflare";
+import { cloudflareSsh } from "@lithe/app/cloudflare-ssh";
 import app from "./app.ts";
 
-export default cloudflare(app);
+export default cloudflareSsh(app);
