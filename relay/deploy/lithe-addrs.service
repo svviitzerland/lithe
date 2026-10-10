@@ -1,0 +1,16 @@
+[Unit]
+# Secondary IPv6 addresses assigned to the ENI are not configured by DHCPv6, so
+# without this they vanish on reboot and every app but the first stops answering.
+Description=lithe — attach the per-app IPv6 addresses
+After=network-online.target
+Wants=network-online.target
+Before=lithe-pipe.service
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+EnvironmentFile=/etc/default/lithe-addrs
+ExecStart=/usr/local/bin/lithe-addrs
+
+[Install]
+WantedBy=multi-user.target

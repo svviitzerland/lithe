@@ -1,0 +1,12 @@
+#!/bin/bash
+# Adds each address in LITHE_ADDRS to the primary interface, idempotently.
+set -u
+IFACE=$(ip -o -4 route show default | awk '{print $5; exit}')
+[ -n "$IFACE" ] || { echo "no default route yet"; exit 1; }
+for addr in ${LITHE_ADDRS:-}; do
+  if ip -6 addr show dev "$IFACE" | grep -q "${addr%%/*}"; then
+    echo "already present: $addr"
+  else
+    ip -6 addr add "$addr" dev "$IFACE" && echo "added $addr to $IFACE"
+  fi
+done
