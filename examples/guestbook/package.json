@@ -1,0 +1,6 @@
+{
+  "name": "guestbook",
+  "private": true,
+  "type": "module",
+  "dependencies": { "@lithe/app": "workspace:*" }
+}

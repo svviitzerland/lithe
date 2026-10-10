@@ -1,0 +1,6 @@
+{
+  "name": "snake",
+  "private": true,
+  "type": "module",
+  "dependencies": { "@lithe/app": "workspace:*" }
+}

@@ -1,0 +1,3 @@
+{
+  "functions": { "api/tui.ts": { "maxDuration": 15 } }
+}

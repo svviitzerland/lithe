@@ -1,0 +1,6 @@
+{
+  "name": "hello",
+  "private": true,
+  "type": "module",
+  "dependencies": { "@lithe/app": "workspace:*" }
+}

@@ -1,0 +1,9 @@
+name = "lithe-guestbook"
+main = "worker.ts"
+compatibility_date = "2026-01-01"
+
+# Create the store once, then paste the id here:
+#   bunx wrangler kv namespace create GUESTBOOK
+# [[kv_namespaces]]
+# binding = "GUESTBOOK"
+# id = "<the id wrangler printed>"
