@@ -122,60 +122,26 @@ nothing on the client at all — because something is finally listening on port 
 
 ## Connecting
 
-### Plain `ssh` — one block, once, for every lithe app
+Visitors run `ssh your-app.com` and nothing else. That works because a **pipe**
+is listening on port 22 and splicing the connection onto your app's WebSocket —
+see [RELAY.md](RELAY.md). The pipe is yours to deploy, once, for all your apps;
+nobody connecting to them needs to know it exists.
 
-```sh
-lithe setup           # prints the block
-lithe setup --write   # installs the bridge and appends the block
-```
+Why a pipe has to exist at all, and why it cannot be replaced by something
+clever on the client, is argued with measurements in
+[SSH-ON-SERVERLESS.md](SSH-ON-SERVERLESS.md).
 
-```
-Host *.workers.dev *.vercel.app *.deno.dev *.netlify.app
-  ProxyCommand python3 ~/.ssh/lithe-bridge.py %h
-  StrictHostKeyChecking accept-new
-```
+### Before a pipe is in front of it
 
-`lithe-bridge.py` is 191 lines of Python standard library: a TLS socket, the
-client half of RFC 6455, and a `select` loop. No pip, no npm, no binary — just
-`python3`, which is already on every Mac and Linux.
-
-It is installed **from disk, once**, never fetched at connect time. Piping a
-remote script into an interpreter would mean every app you visit could run code
-on your machine; this does not.
-
-#### Why a bridge is needed at all
-
-Not an assumption — it was measured. A Worker that echoes its request body back
-as it arrives returns **zero bytes** until the body ends, and declaring a large
-`Content-Length` is rejected with `413`. Cloudflare buffers request bodies, so
-there is no full-duplex HTTP stream to carry SSH inside, and the `openssl
-s_client` trick that would have needed nothing installed does not work. A
-WebSocket is the only bidirectional channel, and WebSocket framing with per-frame
-masking is beyond what shell tools can do.
-
-### `lithe ssh` — if you have the CLI
+To test a deployment from your own machine, the CLI bridges locally:
 
 ```sh
 bunx @lithe/cli ssh my-app.vercel.app
 ```
 
-Runs your real `ssh` binary with the bridge wired in, without touching
-`~/.ssh/config`.
-
-After that:
-
-```sh
-ssh my-app.vercel.app
-```
-
-Stock `ssh`, no username, no relay. The block is not per app — add your own
-domain to the `Host` line and it covers that too.
-
-### Through a relay
-
-Nothing stops you from using both. A relay that speaks the frame protocol still
-works against the same deployment, and it needs no client-side setup at all. See
-[RELAY.md](RELAY.md).
+This runs your real `ssh` binary through a WebSocket bridge, so the crypto, the
+key auth and `known_hosts` are all real. It is a developer convenience — do not
+ask your users to install anything.
 
 ## Host keys
 
