@@ -1,14 +1,18 @@
 #!/usr/bin/env python3
 """
-Bridges a local `ssh` client to a lithe app served over HTTPS.
+A reference client: ssh to a lithe app with no infrastructure in between.
 
     ssh -o ProxyCommand="python3 lithe-bridge.py %h" my-app.vercel.app
 
-Why this exists: a serverless platform offers no raw TCP, and its HTTP layer
-buffers request bodies, so the only bidirectional channel is a WebSocket — which
-needs framing and masking that shell tools cannot do. Python's standard library
-can, and python3 is already on every Mac and Linux, so this needs nothing
-installed.
+You do not need this to use a lithe app. Apps are reached with plain
+`ssh your-app.com`, through a pipe the app author deploys. This exists to show
+that the client half of the transport is small enough to read in one sitting,
+and to connect to a deployment that has no pipe in front of it yet.
+
+A serverless platform offers no raw TCP, and its HTTP layer buffers request
+bodies, so the only bidirectional channel is a WebSocket — which needs framing
+and masking that shell tools cannot do. Python's standard library can, and
+python3 is already on every Mac and Linux.
 
 The SSH session is end-to-end encrypted between your ssh client and the app.
 This script moves bytes; it cannot read them, and it holds no keys.

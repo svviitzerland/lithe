@@ -4,19 +4,21 @@ import { drive } from "./driver.ts";
 import { RemoteRuntime } from "./remote.ts";
 import { scaffold } from "./init.ts";
 import { pipeToWebSocket, sshArgs } from "./pipe.ts";
-import { setup } from "./setup.ts";
 import { deploy } from "./deploy.ts";
 
-const USAGE = `lithe — write a TUI once, serve it over SSH from anywhere.
+const USAGE = `lithe — build and deploy terminal apps that answer ssh.
 
-  lithe dev [file]              run the app in this terminal (in-process)
-  lithe dev --remote <url>      run against a deployed endpoint, over the wire
-  lithe serve [file] [--port N] serve the app over HTTP for a relay to call
-  lithe init [dir]              scaffold a new app with Vercel + Workers config
-  lithe ssh <host> [ssh args]   ssh into a deployed app with no relay in between
+A developer tool. The people who use your app never run any of this; they
+run plain 'ssh your-app.com'.
+
+  lithe init [dir]              scaffold a new app, ready for Vercel and Workers
+  lithe dev [file]              run the app in this terminal
+  lithe deploy                  deploy, generating and installing the host key
+
+  lithe serve [file] [--port N] serve over HTTP, for a relay to call
+  lithe dev --remote <url>      drive a deployed endpoint over the wire
+  lithe ssh <host> [ssh args]   ssh to a deployment that has no pipe yet
   lithe pipe <host>             the ProxyCommand half of 'lithe ssh'
-  lithe setup [--write]         teach plain 'ssh' about lithe apps, once
-  lithe deploy                  deploy, generating and installing the host key for you
 
 Default file: ./app.ts
 `;
@@ -97,14 +99,6 @@ try {
     });
     const proc = Bun.spawn(["ssh", ...args], { stdio: ["inherit", "inherit", "inherit"] });
     process.exit(await proc.exited);
-  } else if (cmd === "setup") {
-    const hostArg = arg("--host");
-    await setup({
-      write: process.argv.includes("--write"),
-      ...(hostArg ? { hosts: [hostArg] } : {}),
-      ...(arg("--path") ? { path: arg("--path")! } : {}),
-      ...(arg("--bridge") ? { bridgePath: arg("--bridge")! } : {}),
-    });
   } else if (cmd === "deploy") {
     const target = process.argv.includes("--vercel")
       ? ("vercel" as const)

@@ -2,7 +2,7 @@ import { expect, test } from "bun:test";
 import { readFile } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
 
-const source = await readFile(fileURLToPath(new URL("../bridge/lithe-bridge.py", import.meta.url)), "utf8");
+const source = await readFile(fileURLToPath(new URL("../../../docs/reference/lithe-bridge.py", import.meta.url)), "utf8");
 
 // The bridge is the one thing a stranger runs. It must stay trivially
 // auditable: standard library only, nothing fetched, nothing executed.

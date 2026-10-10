@@ -238,3 +238,7 @@ Everything above is in this repository.
 The §3.2 measurement is a ten-line Worker; the method is in that section. The
 §5.1 result needs a host with a routed IPv6 block — `relay/deploy/setup-pipe.sh`
 configures one.
+
+`docs/reference/lithe-bridge.py` is the client half of §3.3 in 191 lines of
+Python standard library, included because it is short enough to read and makes
+the transport concrete. Nothing in normal use requires it.

@@ -24,7 +24,6 @@
   "files": [
     "dist",
     "src",
-    "bridge",
     "README.md"
   ],
   "publishConfig": {

@@ -311,6 +311,7 @@ packages/app      app runtime, wire protocol, session codec, adapters
 packages/cli      lithe dev / deploy / init — a developer tool, never the visitor's
 relay             the pipe (parses nothing) and the relay (terminates SSH), in Go
 examples/         hello, snake, guestbook — see examples/README.md
+docs/reference/   a 191-line Python ssh-over-WebSocket client, for reading
 test/fixtures/    shared by the TypeScript and Go key decoders
 scripts/          e2e.sh (relay path) and e2e-ssh.sh (direct path); CI runs both
 ```
