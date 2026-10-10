@@ -69,8 +69,7 @@ export default cloudflareSsh(app);
 ```
 
 ```sh
-wrangler secret put LITHE_SSH_SEED     # the only secret you need
-wrangler deploy
+lithe deploy      # makes the host key, installs it, deploys
 ```
 
 One Worker now answers three ways: `GET /` returns the manifest, `POST /` speaks
@@ -123,27 +122,45 @@ nothing on the client at all — because something is finally listening on port 
 
 ## Connecting
 
-### `lithe ssh` — nothing to configure
+### Plain `ssh` — one block, once, for every lithe app
+
+```sh
+lithe setup           # prints the block
+lithe setup --write   # installs the bridge and appends the block
+```
+
+```
+Host *.workers.dev *.vercel.app *.deno.dev *.netlify.app
+  ProxyCommand python3 ~/.ssh/lithe-bridge.py %h
+  StrictHostKeyChecking accept-new
+```
+
+`lithe-bridge.py` is 191 lines of Python standard library: a TLS socket, the
+client half of RFC 6455, and a `select` loop. No pip, no npm, no binary — just
+`python3`, which is already on every Mac and Linux.
+
+It is installed **from disk, once**, never fetched at connect time. Piping a
+remote script into an interpreter would mean every app you visit could run code
+on your machine; this does not.
+
+#### Why a bridge is needed at all
+
+Not an assumption — it was measured. A Worker that echoes its request body back
+as it arrives returns **zero bytes** until the body ends, and declaring a large
+`Content-Length` is rejected with `413`. Cloudflare buffers request bodies, so
+there is no full-duplex HTTP stream to carry SSH inside, and the `openssl
+s_client` trick that would have needed nothing installed does not work. A
+WebSocket is the only bidirectional channel, and WebSocket framing with per-frame
+masking is beyond what shell tools can do.
+
+### `lithe ssh` — if you have the CLI
 
 ```sh
 bunx @lithe/cli ssh my-app.vercel.app
 ```
 
-It runs your real `ssh` binary with a `ProxyCommand` that bridges to the app's
-HTTPS endpoint. Real crypto, real key auth, real `known_hosts`.
-
-### Plain `ssh` — one block, once, for every lithe app
-
-```sh
-lithe setup           # prints the block
-lithe setup --write   # appends it to ~/.ssh/config
-```
-
-```
-Host *.workers.dev *.vercel.app *.deno.dev *.netlify.app
-  ProxyCommand lithe pipe %h
-  StrictHostKeyChecking accept-new
-```
+Runs your real `ssh` binary with the bridge wired in, without touching
+`~/.ssh/config`.
 
 After that:
 
@@ -180,9 +197,13 @@ console.log(await fingerprintFor(process.env.LITHE_SSH_SEED!));
 // SHA256:hGmH/KOjEpCTbqXMdcspKAk/dzuuTKpJq5PbJAeB4i8
 ```
 
-**If you do not set a seed, one is generated per isolate** and the fingerprint
-changes on every cold start, which means a host-key warning on every connection.
-Set the seed.
+`lithe deploy` does all of this for you: it generates a seed on the first deploy,
+keeps it in `.lithe/hostkey` (git-ignored, mode 600) and installs it as a
+platform secret. There is no `.env` to write and no value to copy around.
+
+**If no seed reaches the runtime, one is generated per isolate** and the
+fingerprint changes on every cold start, which means a host-key warning on every
+connection. That is the one failure mode worth watching for.
 
 ## Identity
 

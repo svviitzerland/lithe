@@ -48,6 +48,7 @@
       "dependencies": {
         "@lithe/app": "0.1.0",
         "@lithe/core": "0.1.0",
+        "@lithe/ssh": "0.1.0",
       },
     },
     "packages/core": {

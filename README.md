@@ -71,6 +71,7 @@ why:
 | SSH needs inbound TCP on port 22 | Vercel Functions and Cloudflare Workers accept **HTTP only**. Cloudflare's inbound-TCP-to-Workers feature exists but is **private beta and needs Spectrum** (SSH is Pro+, one app, a CNAME per app). |
 | Routing many apps on one port | SSH has **no SNI**. No hostname in the handshake, and the username is encrypted — so no layer-4 proxy can tell which app a connection wants. |
 | A session outliving a request | Serverless functions are killed at a duration limit. |
+| Tunnelling bytes over plain HTTPS | **Measured, not assumed:** a Worker that echoes its request body streams back *nothing* until the body ends, and a large `Content-Length` is refused with `413`. Cloudflare buffers request bodies, so there is no full-duplex HTTP to hide SSH inside. A WebSocket is the only bidirectional channel. |
 
 lithe answers all three by moving the SSH server **into the function**, and by
 carrying it over the one thing every platform does support: an HTTPS WebSocket.
@@ -171,9 +172,15 @@ export default handler;
 ```
 
 ```sh
-wrangler secret put LITHE_SSH_SEED   # the only secret: host key and session signing
-wrangler deploy
+lithe deploy      # generates the host key, installs it as a secret, deploys
 ```
+
+There is no `.env` to write. The first deploy generates a random seed, keeps it
+in `.lithe/hostkey` (git-ignored, mode 600) and installs it as a Cloudflare
+secret or Vercel environment variable. Every deploy after that reuses it, which
+is what keeps the SSH fingerprint stable. If a key is already on the platform,
+`lithe deploy` leaves it alone rather than silently rotating it and warning every
+client.
 
 Using your own domain? Add it in the dashboard, as you would for any site. There
 is no lithe-specific DNS record to publish and nothing to register.
@@ -197,7 +204,7 @@ See [docs/DEPLOY.md](docs/DEPLOY.md) and [docs/SSH.md](docs/SSH.md).
 | | what the visitor does | what you run | who can read the session |
 |---|---|---|---|
 | **Pipe** | `ssh my-app.com` — nothing at all | a byte-splicer on any box with port 22 | **nobody** |
-| **Client-side bridge** | `lithe ssh my-app.vercel.app`, or plain `ssh` after one `lithe setup` | **nothing** | **nobody** |
+| **Client-side bridge** | `lithe setup --write` once, then plain `ssh` forever — needs only `python3` | **nothing** | **nobody** |
 | **Relay** | `ssh my-app.vercel.app@relay` — nothing installed | nothing, if you use a shared relay | the relay |
 
 Pick by what you are willing to run. The pipe is the only one that is free for
@@ -213,15 +220,18 @@ lithe-relay --addr :22 --pipe https://my-app.vercel.app
 It holds no host key and parses no protocol. Many apps on one box route by
 destination address — one IPv6 each, from a `/64`. See [docs/RELAY.md](docs/RELAY.md).
 
-**Client-side bridge.** `lithe ssh <host>` runs your real `ssh` binary through a
-local bridge to the app's HTTPS endpoint, so there is no infrastructure anywhere.
-To make the stock `ssh` command work on its own, one block covers every lithe app,
-forever:
+**Client-side bridge.** No infrastructure anywhere. One block in `~/.ssh/config`
+covers every lithe app, forever:
 
 ```sh
-lithe setup --write     # adds a ProxyCommand block to ~/.ssh/config
+lithe setup --write     # installs ~/.ssh/lithe-bridge.py and one Host block
 ssh my-app.vercel.app   # stock ssh, no username, no relay
 ```
+
+The bridge is **191 lines of Python using only the standard library** — no pip, no
+npm, no binary. It is installed once from this repo, never fetched at connect
+time, and it carries SSH ciphertext it cannot read. `python3` is already on every
+Mac and Linux, so a visitor installs nothing.
 
 **Relay.** A small Go binary that terminates SSH and speaks the frame protocol to
 your endpoint over HTTP. Nothing to install for the visitor, and nothing to
